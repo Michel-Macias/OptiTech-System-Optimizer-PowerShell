@@ -993,29 +993,6 @@ function Show-NetworkMenu {
 
 #endregion
 
-
-function Show-NetworkMenu {
-    while ($true) {
-        Clear-Host
-        Write-Host "--- Módulo de Red y Conectividad ---"
-        Write-Host "1. Limpiar la caché de DNS (flushdns)"
-        Write-Host "2. Renovar la dirección IP (renew)"
-        Write-Host "V. Volver al menú principal"
-
-        $choice = Read-Host "Seleccione una opción"
-
-        switch ($choice) {
-            '1' { Flush-DnsCache }
-            '2' { Renew-IpAddress }
-            'V' { return }
-            default { Write-Warning "Opción no válida." }
-        }
-        Read-Host "Presione Enter para continuar..."
-    }
-}
-
-#endregion
-
 <#
 .SYNOPSIS
     Genera un resumen de las operaciones realizadas por OptiTech.
