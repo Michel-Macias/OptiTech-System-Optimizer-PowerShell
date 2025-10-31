@@ -180,15 +180,16 @@ function Get-HardwareInfo {
     Write-Log -Level INFO -Message "Obteniendo información del hardware."
     
     Write-Host "`n--- CPU ---" -ForegroundColor Cyan
-    Get-CimInstance -ClassName Win32_Processor | ForEach-Object {
+    Get-CimInstance -ClassName Win32_Processor | Select-Object Name, Manufacturer, MaxClockSpeed, NumberOfCores, NumberOfLogicalProcessors | ForEach-Object {
         $_.PSObject.Properties | ForEach-Object {
             Write-Host -NoNewline -Object ("- {0,-25}: " -f $_.Name) -ForegroundColor Green
             Write-Host -Object $_.Value -ForegroundColor White
         }
+        Write-Host ""
     }
     
     Write-Host "`n--- Memoria RAM ---" -ForegroundColor Cyan
-    Get-CimInstance -ClassName Win32_PhysicalMemory | ForEach-Object {
+    Get-CimInstance -ClassName Win32_PhysicalMemory | Select-Object DeviceLocator, Manufacturer, Speed, @{Name="Capacity(GB)";Expression={[math]::Round($_.Capacity / 1GB, 2)}} | ForEach-Object {
         $_.PSObject.Properties | ForEach-Object {
             Write-Host -NoNewline -Object ("- {0,-25}: " -f $_.Name) -ForegroundColor Green
             Write-Host -Object $_.Value -ForegroundColor White
