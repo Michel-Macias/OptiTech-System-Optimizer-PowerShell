@@ -1,0 +1,22 @@
+# Archivos de configuración y desarrollo interno
+GEMINI.md
+REFACTOR_PLAN.md
+
+# Logs y Backups
+logs/
+RegistryBackup/
+*.log
+*.bak
+*.tmp
+
+# Directorios de compilación de PowerShell
+/bin/
+/obj/
+
+# Configuración de editores
+.vscode/
+.vs/
+
+# Archivos generados por el sistema operativo
+[Tt]humbs.db
+.DS_Store
