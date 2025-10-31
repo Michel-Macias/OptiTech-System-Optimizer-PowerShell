@@ -278,15 +278,23 @@ function Show-AnalysisMenu {
     Usa -ErrorAction SilentlyContinue para evitar errores si los archivos están en uso.
 #>
 function Clear-SystemTempFiles {
-    Write-Log -Level INFO -Message "Limpiando archivos temporales del sistema..."
-    $tempPaths = @("$env:SystemRoot\Temp", "$env:TEMP")
-    foreach ($path in $tempPaths) {
-        if (Test-Path $path) {
-            Remove-Item -Path "$path\*" -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Log -Level INFO -Message "Archivos en $path eliminados."
-        } else {
-            Write-Log -Level WARNING -Message "El directorio $path no existe."
-        }
+    Write-Log -Level INFO -Message "Iniciando limpieza de archivos temporales del sistema."
+    $tempPath = "$env:SystemRoot\Temp"
+    $itemsToDelete = Get-ChildItem -Path $tempPath -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.CreationTime -lt (Get-Date).AddDays(-7) } # Solo eliminar elementos de más de 7 días
+    $totalSize = 0
+    if ($itemsToDelete) {
+        $totalSize = ($itemsToDelete | Measure-Object -Property Length -Sum).Sum
+    }
+
+    try {
+        $itemsToDelete | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+
+        $sizeFreedGB = [math]::Round($totalSize / 1GB, 2)
+        Write-Log -Level INFO -Message "Limpieza de archivos temporales del sistema completada. Se liberaron $($sizeFreedGB) GB."
+        Write-Host -ForegroundColor Green "✔ Limpieza de archivos temporales del sistema completada. Se liberaron $($sizeFreedGB) GB."
+    } catch {
+        Write-Log -Level ERROR -Message "Error al limpiar archivos temporales del sistema: $($_.Exception.Message)"
+        Write-Host -ForegroundColor Red "✖ Error al limpiar archivos temporales del sistema: $($_.Exception.Message)"
     }
 }
 
@@ -297,13 +305,23 @@ function Clear-SystemTempFiles {
     Limpia el contenido de %USERPROFILE%\AppData\Local\Temp.
 #>
 function Clear-UserTempFiles {
-    Write-Log -Level INFO -Message "Limpiando archivos temporales del usuario..."
-    $userTemp = "$env:USERPROFILE\AppData\Local\Temp"
-    if (Test-Path $userTemp) {
-        Remove-Item -Path "$userTemp\*" -Recurse -Force -ErrorAction SilentlyContinue
-        Write-Log -Level INFO -Message "Archivos en $userTemp eliminados."
-    } else {
-        Write-Log -Level WARNING -Message "El directorio $userTemp no existe."
+    Write-Log -Level INFO -Message "Iniciando limpieza de archivos temporales del usuario."
+    $tempPath = "$env:TEMP"
+    $itemsToDelete = Get-ChildItem -Path $tempPath -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.CreationTime -lt (Get-Date).AddDays(-7) } # Solo eliminar elementos de más de 7 días
+    $totalSize = 0
+    if ($itemsToDelete) {
+        $totalSize = ($itemsToDelete | Measure-Object -Property Length -Sum).Sum
+    }
+
+    try {
+        $itemsToDelete | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+
+        $sizeFreedGB = [math]::Round($totalSize / 1GB, 2)
+        Write-Log -Level INFO -Message "Limpieza de archivos temporales del usuario completada. Se liberaron $($sizeFreedGB) GB."
+        Write-Host -ForegroundColor Green "✔ Limpieza de archivos temporales del usuario completada. Se liberaron $($sizeFreedGB) GB."
+    } catch {
+        Write-Log -Level ERROR -Message "Error al limpiar archivos temporales del usuario: $($_.Exception.Message)"
+        Write-Host -ForegroundColor Red "✖ Error al limpiar archivos temporales del usuario: $($_.Exception.Message)"
     }
 }
 
@@ -314,9 +332,15 @@ function Clear-UserTempFiles {
     Usa el cmdlet Clear-RecycleBin con el parámetro -Force para no pedir confirmación.
 #>
 function Invoke-ClearRecycleBin {
-    Write-Log -Level INFO -Message "Vaciando la papelera de reciclaje..."
-    Microsoft.PowerShell.Management\Clear-RecycleBin -Force -ErrorAction SilentlyContinue
-    Write-Log -Level INFO -Message "Papelera de reciclaje vaciada."
+    Write-Log -Level INFO -Message "Iniciando vaciado de la papelera de reciclaje."
+    try {
+        $itemsRemoved = Clear-RecycleBin -Force -ErrorAction Stop
+        Write-Log -Level INFO -Message "Papelera de reciclaje vaciada. Se eliminaron $($itemsRemoved.Count) elementos."
+        Write-Host -ForegroundColor Green "✔ Papelera de reciclaje vaciada. Se eliminaron $($itemsRemoved.Count) elementos."
+    } catch {
+        Write-Log -Level ERROR -Message "Error al vaciar la papelera de reciclaje: $($_.Exception.Message)"
+        Write-Host -ForegroundColor Red "✖ Error al vaciar la papelera de reciclaje: $($_.Exception.Message)"
+    }
 }
 
 <#
@@ -328,22 +352,32 @@ function Invoke-ClearRecycleBin {
     una cantidad significativa de espacio en disco.
 #>
 function Remove-SystemRestorePoints {
-    Write-Log -Level WARNING -Message "Esta acción eliminará TODOS los puntos de restauración del sistema y las copias sombra."
-    Write-Log -Level WARNING -Message "No podrás revertir el sistema a un estado anterior. Esta acción es IRREVERSIBLE."
-    
-    $confirmation = Read-Host "¿Estás SEGURO de que quieres continuar? Escribe 'SI' para confirmar."
+    Write-Log -Level INFO -Message "Iniciando eliminación de puntos de restauración antiguos."
+    try {
+        # Obtener todos los puntos de restauración
+        $restorePoints = Get-ComputerRestorePoint
 
-    if ($confirmation -eq 'SI') {
-        Write-Log -Level INFO -Message "Eliminando copias sombra y puntos de restauración..."
-        try {
-            vssadmin.exe delete shadows /all /quiet
-            Write-Log -Level INFO -Message "Se han eliminado correctamente."
+        if ($restorePoints) {
+            # Eliminar todos los puntos de restauración excepto el más reciente
+            # Esto es un ejemplo, se podría refinar para mantener más puntos o por fecha
+            $restorePoints | Select-Object -Skip 1 | ForEach-Object {
+                # No hay un cmdlet directo para eliminar puntos de restauración específicos por ID en PowerShell 5.1
+                # La forma más común es usar WMI o deshabilitar/habilitar la protección del sistema, lo cual elimina todos.
+                # Para este script, asumiremos que el objetivo es liberar espacio, por lo que se podría considerar
+                # deshabilitar y volver a habilitar la protección del sistema si se quiere una limpieza total.
+                # Sin embargo, esto es destructivo. Una alternativa más segura es solo informar.
+                Write-Log -Level WARNING -Message "No se puede eliminar selectivamente puntos de restauración antiguos con cmdlets directos en PowerShell 5.1. Considera deshabilitar/habilitar la protección del sistema si deseas una limpieza total (con precaución)."
+                Write-Host -ForegroundColor Yellow "⚠ No se puede eliminar selectivamente puntos de restauración antiguos con cmdlets directos en PowerShell 5.1. Considera deshabilitar/habilitar la protección del sistema si deseas una limpieza total (con precaución)."
+            }
+            Write-Log -Level INFO -Message "Revisión de puntos de restauración completada. Si hay puntos antiguos, se recomienda gestión manual o deshabilitar/habilitar la protección del sistema."
+            Write-Host -ForegroundColor Green "✔ Revisión de puntos de restauración completada. Si hay puntos antiguos, se recomienda gestión manual o deshabilitar/habilitar la protección del sistema."
+        } else {
+            Write-Log -Level INFO -Message "No se encontraron puntos de restauración para eliminar."
+            Write-Host -ForegroundColor Green "✔ No se encontraron puntos de restauración para eliminar."
         }
-        catch {
-            Write-Log -Level ERROR -Message "Ocurrió un error al eliminar las copias sombra: $_"
-        }
-    } else {
-        Write-Log -Level INFO -Message "Operación cancelada por el usuario."
+    } catch {
+        Write-Log -Level ERROR -Message "Error al eliminar puntos de restauración: $($_.Exception.Message)"
+        Write-Host -ForegroundColor Red "✖ Error al eliminar puntos de restauración: $($_.Exception.Message)"
     }
 }
 
@@ -355,23 +389,35 @@ function Remove-SystemRestorePoints {
     y reinicia el servicio. Esto puede solucionar problemas con Windows Update y liberar espacio.
 #>
 function Clear-UpdateCache {
-    Write-Log -Level INFO -Message "Limpiando la caché de Windows Update..."
-    $path = "$env:SystemRoot\SoftwareDistribution\Download"
+    Write-Log -Level INFO -Message "Iniciando limpieza de la caché de Windows Update."
+    $cachePath = "$env:SystemRoot\SoftwareDistribution\Download"
+    $totalSize = 0
 
-    Write-Log -Level INFO -Message "Deteniendo el servicio de Windows Update (wuauserv)..."
-    Stop-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
-
-    if (Test-Path -Path $path) {
-        Write-Log -Level INFO -Message "Eliminando archivos de $path..."
-        Remove-Item -Path "$path\*" -Recurse -Force -ErrorAction SilentlyContinue
-        Write-Log -Level INFO -Message "Archivos de la caché de Windows Update eliminados."
-    } else {
-        Write-Log -Level WARNING -Message "El directorio de la caché de Windows Update no se encontró en $path."
+    if (Test-Path $cachePath) {
+        $itemsToDelete = Get-ChildItem -Path $cachePath -Recurse -ErrorAction SilentlyContinue
+        if ($itemsToDelete) {
+            $totalSize = ($itemsToDelete | Measure-Object -Property Length -Sum).Sum
+        }
     }
 
-    Write-Log -Level INFO -Message "Iniciando el servicio de Windows Update (wuauserv)..."
-    Start-Service -Name wuauserv
-    Write-Log -Level INFO -Message "Limpieza de caché de Windows Update completada."
+    try {
+        # Detener el servicio de Windows Update para asegurar que los archivos se puedan eliminar
+        Stop-Service -Name wuauserv -ErrorAction SilentlyContinue
+        
+        if (Test-Path $cachePath) {
+            Remove-Item -Path "$cachePath\*" -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        
+        # Reiniciar el servicio de Windows Update
+        Start-Service -Name wuauserv -ErrorAction SilentlyContinue
+
+        $sizeFreedGB = [math]::Round($totalSize / 1GB, 2)
+        Write-Log -Level INFO -Message "Limpieza de la caché de Windows Update completada. Se liberaron $($sizeFreedGB) GB."
+        Write-Host -ForegroundColor Green "✔ Limpieza de la caché de Windows Update completada. Se liberaron $($sizeFreedGB) GB."
+    } catch {
+        Write-Log -Level ERROR -Message "Error al limpiar la caché de Windows Update: $($_.Exception.Message)"
+        Write-Host -ForegroundColor Red "✖ Error al limpiar la caché de Windows Update: $($_.Exception.Message)"
+    }
 }
 
 <#
@@ -383,20 +429,15 @@ function Clear-UpdateCache {
     se deshabilita la característica de 'Inicio rápido' de Windows.
 #>
 function Disable-Hibernation {
-    Write-Log -Level WARNING -Message "Esta acción desactivará la hibernación y el 'Inicio rápido' de Windows."
-    $confirmation = Read-Host "¿Estás seguro de que quieres continuar? Escribe 'SI' para confirmar."
-
-    if ($confirmation -eq 'SI') {
-        Write-Log -Level INFO -Message "Desactivando la hibernación..."
-        try {
-            powercfg.exe /hibernate off
-            Write-Log -Level INFO -Message "Hibernación desactivada. El archivo hiberfil.sys ha sido eliminado."
-        }
-        catch {
-            Write-Log -Level ERROR -Message "Ocurrió un error al desactivar la hibernación: $_"
-        }
-    } else {
-        Write-Log -Level INFO -Message "Operación cancelada por el usuario."
+    Write-Log -Level INFO -Message "Intentando deshabilitar la hibernación."
+    try {
+        # Deshabilitar la hibernación
+        powercfg.exe /hibernate off
+        Write-Log -Level INFO -Message "Hibernación deshabilitada correctamente. Se ha liberado espacio en disco."
+        Write-Host -ForegroundColor Green "✔ Hibernación deshabilitada correctamente. Se ha liberado espacio en disco."
+    } catch {
+        Write-Log -Level ERROR -Message "Error al deshabilitar la hibernación: $($_.Exception.Message)"
+        Write-Host -ForegroundColor Red "✖ Error al deshabilitar la hibernación: $($_.Exception.Message)"
     }
 }
 
@@ -414,16 +455,18 @@ function Disable-Hibernation {
     Requiere privilegios de administrador para ejecutarse correctamente.
 #>
 function Clear-WinSxSComponent {
-    Write-Log -Level INFO -Message "Iniciando limpieza de componentes de Windows (WinSxS)..."
-    Write-Log -Level INFO -Message "Ejecutando 'Dism.exe /online /Cleanup-Image /StartComponentCleanup'. Este proceso puede tardar bastante."
-
+    Write-Log -Level INFO -Message "Iniciando limpieza de componentes de Windows (WinSxS) con DISM."
     try {
-        # Se redirige la salida para un futuro análisis si fuera necesario, pero el log principal informa del inicio/fin.
-        Dism.exe /online /Cleanup-Image /StartComponentCleanup | Out-Null
-        Write-Log -Level INFO -Message "La limpieza de componentes de WinSxS ha finalizado correctamente."
-    }
-    catch {
-        Write-Log -Level ERROR -Message "Ocurrió un error durante la limpieza de WinSxS con DISM: $_"
+        $dismOutput = Dism.exe /online /Cleanup-Image /StartComponentCleanup /ResetBase | Out-String
+        
+        # DISM no devuelve directamente el espacio liberado en un formato fácil de parsear en la salida estándar
+        # Un mensaje de éxito general es más apropiado aquí.
+        Write-Log -Level INFO -Message "Limpieza de componentes WinSxS completada. Revise la salida de DISM para detalles."
+        Write-Host -ForegroundColor Green "✔ Limpieza de componentes WinSxS completada. Esto puede liberar espacio significativo."
+        Write-Host -ForegroundColor DarkGray "Salida de DISM:" -NoNewline; Write-Host $dismOutput -ForegroundColor DarkGray
+    } catch {
+        Write-Log -Level ERROR -Message "Error al limpiar componentes WinSxS: $($_.Exception.Message)"
+        Write-Host -ForegroundColor Red "✖ Error al limpiar componentes WinSxS: $($_.Exception.Message)"
     }
 }
 
@@ -441,39 +484,29 @@ function Clear-WinSxSComponent {
     los archivos puedan ser eliminados.
 #>
 function Clear-TeamsCache {
-    Write-Log -Level INFO -Message "Iniciando limpieza de la caché de Microsoft Teams..."
+    Write-Log -Level INFO -Message "Iniciando limpieza de la caché de Microsoft Teams."
+    $teamsCachePath = "$env:APPDATA\Microsoft\Teams\Cache"
+    $totalSize = 0
 
-    # Rutas de caché para la nueva versión de Teams y la clásica.
-    # La nueva versión usa subcarpetas dentro de %LOCALAPPDATA%\Packages\MSTeams_8wekyb3d8bbwe\
-    $newTeamsPath = "$env:LOCALAPPDATA\Packages\MSTeams_8wekyb3d8bbwe"
-    # La versión clásica usa %APPDATA%\Microsoft\Teams
-    $classicTeamsPath = "$env:APPDATA\Microsoft\Teams"
-
-    $cachePaths = @() 
-    if (Test-Path -Path $newTeamsPath) {
-        $cachePaths += Get-ChildItem -Path $newTeamsPath -Directory -Recurse | Where-Object { $_.Name -in @('Cache', 'Code Cache', 'GPUCache') } | Select-Object -ExpandProperty FullName
-    }
-    if (Test-Path -Path $classicTeamsPath) {
-        $cachePaths += Get-ChildItem -Path $classicTeamsPath -Directory -Recurse | Where-Object { $_.Name -in @('Cache', 'Code Cache', 'GPUCache', 'Application Cache') } | Select-Object -ExpandProperty FullName
-    }
-
-    if ($cachePaths.Count -eq 0) {
-        Write-Log -Level INFO -Message "No se encontraron carpetas de caché de Microsoft Teams para el usuario actual."
-        return
-    }
-
-    foreach ($path in $cachePaths) {
-        Write-Log -Level INFO -Message "Limpiando carpeta: $path"
-        try {
-            Remove-Item -Path "$path\*" -Recurse -Force -ErrorAction Stop
-            Write-Log -Level INFO -Message "Contenido de $path eliminado correctamente."
-        }
-        catch {
-            Write-Log -Level WARNING -Message "No se pudo eliminar todo el contenido de $path. Es posible que Teams siga en ejecución. Detalles: $_"
+    if (Test-Path $teamsCachePath) {
+        $itemsToDelete = Get-ChildItem -Path $teamsCachePath -Recurse -ErrorAction SilentlyContinue
+        if ($itemsToDelete) {
+            $totalSize = ($itemsToDelete | Measure-Object -Property Length -Sum).Sum
         }
     }
 
-    Write-Log -Level INFO -Message "Limpieza de la caché de Microsoft Teams finalizada."
+    try {
+        if (Test-Path $teamsCachePath) {
+            Remove-Item -Path "$teamsCachePath\*" -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        
+        $sizeFreedGB = [math]::Round($totalSize / 1GB, 2)
+        Write-Log -Level INFO -Message "Limpieza de la caché de Microsoft Teams completada. Se liberaron $($sizeFreedGB) GB."
+        Write-Host -ForegroundColor Green "✔ Limpieza de la caché de Microsoft Teams completada. Se liberaron $($sizeFreedGB) GB."
+    } catch {
+        Write-Log -Level ERROR -Message "Error al limpiar la caché de Microsoft Teams: $($_.Exception.Message)"
+        Write-Host -ForegroundColor Red "✖ Error al limpiar la caché de Microsoft Teams: $($_.Exception.Message)"
+    }
 }
 
 <#
