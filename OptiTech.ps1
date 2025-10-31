@@ -557,12 +557,23 @@ function Show-CleanupMenu {
     y reactiva el suavizado de fuentes para mantener la legibilidad del texto.
 #>
 function Set-PerformanceVisualEffects {
-    Write-Log -Level INFO -Message "Ajustando efectos visuales para mejor rendimiento..."
-    # El valor '2' corresponde a "Ajustar para obtener el mejor rendimiento".
-    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" -Name "VisualFxSetting" -Value 2
-    # Se reactiva el suavizado de fuentes (ClearType) para no sacrificar la legibilidad.
-    Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "FontSmoothing" -Value 2
-    Write-Log -Level INFO -Message "Efectos visuales ajustados. Se recomienda reiniciar el explorador o la sesión."
+    Write-Log -Level INFO -Message "Ajustando efectos visuales para mejor rendimiento."
+    try {
+        # Deshabilitar efectos visuales que consumen recursos
+        # Esto es un ejemplo, se pueden añadir más configuraciones
+        Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "UserPreferencesMask" -Value ([byte[]](0x90, 0x12, 0x03, 0x80, 0x10, 0x00, 0x00, 0x00))
+        Set-ItemProperty -Path "HKCU:\Control Panel\Desktop\WindowMetrics" -Name "MinAnimate" -Value "0"
+        
+        # Actualizar la configuración para que los cambios surtan efecto
+        # [void]([System.Runtime.InteropServices.Marshal]::ReleaseComObject([System.Activator]::CreateInstance([System.Type]::GetTypeFromCLSID([System.Guid]::new("{00021401-0000-0000-C000-000000000046}")))))
+        # No es necesario reiniciar, pero algunos cambios pueden requerir un cierre de sesión.
+
+        Write-Log -Level INFO -Message "Efectos visuales ajustados para mejor rendimiento."
+        Write-Host -ForegroundColor Green "✔ Efectos visuales ajustados para mejor rendimiento."
+    } catch {
+        Write-Log -Level ERROR -Message "Error al ajustar efectos visuales: $($_.Exception.Message)"
+        Write-Host -ForegroundColor Red "✖ Error al ajustar efectos visuales: $($_.Exception.Message)"
+    }
 }
 
 <#
@@ -573,24 +584,46 @@ function Set-PerformanceVisualEffects {
     los detiene y establece su tipo de inicio en 'Deshabilitado'.
 #>
 function Manage-NonEssentialServices {
-    Write-Log -Level INFO -Message "Gestionando servicios no esenciales según la configuración..."
-    
+    Write-Log -Level INFO -Message "Gestionando servicios no esenciales."
     $config = Get-OptiTechConfig
-    if (-not $config -or -not $config.PSObject.Properties.Name -contains 'ServicesToDisable') {
-        Write-Log -Level WARNING -Message "No se encontró una configuración válida o la lista 'ServicesToDisable' en config.json. Omitiendo tarea."
+    $servicesToDisable = $config.ServicesToDisable
+    $affectedServices = @()
+
+    if (-not $servicesToDisable) {
+        Write-Log -Level WARNING -Message "No se encontraron servicios para deshabilitar en config.json."
+        Write-Host -ForegroundColor Yellow "⚠ No se encontraron servicios para deshabilitar en config.json."
         return
     }
 
-    $servicesToDisable = $config.ServicesToDisable
-    
-    foreach ($service in $servicesToDisable) {
-        if (Get-Service -Name $service -ErrorAction SilentlyContinue) {
-            Stop-Service -Name $service -Force -ErrorAction SilentlyContinue
-            Set-Service -Name $service -StartupType Disabled -ErrorAction SilentlyContinue
-            Write-Log -Level INFO -Message "Servicio $service deshabilitado y detenido."
-        } else {
-            Write-Log -Level WARNING -Message "El servicio '$service' (definido en config.json) no se encontró."
+    foreach ($serviceName in $servicesToDisable) {
+        try {
+            $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+            if ($service) {
+                if ($service.Status -ne 'Stopped') {
+                    Stop-Service -InputObject $service -ErrorAction Stop
+                    Set-Service -InputObject $service -StartupType Disabled -ErrorAction Stop
+                    $affectedServices += "$($service.DisplayName) (Detenido y Deshabilitado)"
+                    Write-Log -Level INFO -Message "Servicio '$($service.DisplayName)' ($serviceName) detenido y deshabilitado."
+                } else {
+                    Set-Service -InputObject $service -StartupType Disabled -ErrorAction Stop
+                    $affectedServices += "$($service.DisplayName) (Deshabilitado)"
+                    Write-Log -Level INFO -Message "Servicio '$($service.DisplayName)' ($serviceName) deshabilitado."
+                }
+            } else {
+                Write-Log -Level WARNING -Message "Servicio '$serviceName' no encontrado."
+                $affectedServices += "$serviceName (No encontrado)"
+            }
+        } catch {
+            Write-Log -Level ERROR -Message "Error al gestionar el servicio '$serviceName': $($_.Exception.Message)"
+            $affectedServices += "$serviceName (Error: $($_.Exception.Message))"
         }
+    }
+
+    if ($affectedServices.Count -gt 0) {
+        Write-Host -ForegroundColor Green "✔ Gestión de servicios no esenciales completada. Servicios afectados:"
+        $affectedServices | ForEach-Object { Write-Host -ForegroundColor White "  - $_" }
+    } else {
+        Write-Host -ForegroundColor Yellow "⚠ No se realizaron cambios en los servicios."
     }
 }
 
@@ -602,14 +635,23 @@ function Manage-NonEssentialServices {
     y lo establece como el plan activo.
 #>
 function Set-HighPerformancePowerPlan {
-    Write-Log -Level INFO -Message "Aplicando plan de energía de alto rendimiento..."
-    # Busca la línea que contiene "Alto rendimiento" y extrae el GUID.
-    $highPerformance = powercfg /list | Where-Object { $_ -match "Alto rendimiento" } | ForEach-Object { ($_.Split(" "))[3] }
-    if ($highPerformance) {
-        powercfg /setactive $highPerformance
-        Write-Log -Level INFO -Message "Plan de energía de alto rendimiento activado."
-    } else {
-        Write-Log -Level WARNING -Message "No se encontró el plan de energía de alto rendimiento."
+    Write-Log -Level INFO -Message "Intentando aplicar plan de energía de alto rendimiento."
+    try {
+        # Obtener el GUID del plan de energía de alto rendimiento
+        $highPerformanceGuid = (Get-WmiObject -Class Win32_PowerPlan | Where-Object { $_.ElementName -eq "Alto rendimiento" }).InstanceID
+
+        if ($highPerformanceGuid) {
+            # Establecer el plan de energía
+            powercfg.exe /setactive $highPerformanceGuid.Split('{')[1].Split('}')[0]
+            Write-Log -Level INFO -Message "Plan de energía establecido en 'Alto rendimiento'."
+            Write-Host -ForegroundColor Green "✔ Plan de energía establecido en 'Alto rendimiento'."
+        } else {
+            Write-Log -Level WARNING -Message "No se encontró el plan de energía 'Alto rendimiento'."
+            Write-Host -ForegroundColor Yellow "⚠ No se encontró el plan de energía 'Alto rendimiento'."
+        }
+    } catch {
+        Write-Log -Level ERROR -Message "Error al aplicar plan de energía de alto rendimiento: $($_.Exception.Message)"
+        Write-Host -ForegroundColor Red "✖ Error al aplicar plan de energía de alto rendimiento: $($_.Exception.Message)"
     }
 }
 
