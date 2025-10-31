@@ -161,7 +161,12 @@ function Get-OptiTechConfig {
 #>
 function Get-OperatingSystemInfo {
     Write-Log -Level INFO -Message "Obteniendo información del sistema operativo."
-    Get-ComputerInfo | Select-Object OsName, OsVersion, OsArchitecture, CsSystemType, WindowsVersion, WindowsProductName, WindowsCurrentVersion, WindowsInstallationType, OsLanguage, OsCountryCode | Out-Host
+    $osInfo = Get-ComputerInfo | Select-Object OsName, OsVersion, OsArchitecture, CsSystemType, WindowsVersion, WindowsProductName, WindowsCurrentVersion, WindowsInstallationType, OsLanguage, OsCountryCode
+    
+    $osInfo.PSObject.Properties | ForEach-Object {
+        Write-Host -NoNewline -Object ("- {0,-25}: " -f $_.Name) -ForegroundColor Green
+        Write-Host -Object $_.Value -ForegroundColor White
+    }
 }
 
 <#
@@ -174,18 +179,38 @@ function Get-OperatingSystemInfo {
 function Get-HardwareInfo {
     Write-Log -Level INFO -Message "Obteniendo información del hardware."
     
-    Write-Host "--- CPU ---"
-    Get-CimInstance -ClassName Win32_Processor | Select-Object Name, Manufacturer, MaxClockSpeed, NumberOfCores, NumberOfLogicalProcessors | Out-Host
+    Write-Host "`n--- CPU ---" -ForegroundColor Cyan
+    Get-CimInstance -ClassName Win32_Processor | ForEach-Object {
+        $_.PSObject.Properties | ForEach-Object {
+            Write-Host -NoNewline -Object ("- {0,-25}: " -f $_.Name) -ForegroundColor Green
+            Write-Host -Object $_.Value -ForegroundColor White
+        }
+    }
     
-    Write-Host "--- Memoria RAM ---"
-    Get-CimInstance -ClassName Win32_PhysicalMemory | Select-Object Capacity, Manufacturer, Speed | Out-Host
+    Write-Host "`n--- Memoria RAM ---" -ForegroundColor Cyan
+    Get-CimInstance -ClassName Win32_PhysicalMemory | ForEach-Object {
+        $_.PSObject.Properties | ForEach-Object {
+            Write-Host -NoNewline -Object ("- {0,-25}: " -f $_.Name) -ForegroundColor Green
+            Write-Host -Object $_.Value -ForegroundColor White
+        }
+        Write-Host ""
+    }
     $totalMemory = [math]::Round((Get-CimInstance -ClassName Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 2)
     $freeMemory = [math]::Round((Get-CimInstance -ClassName Win32_OperatingSystem).FreePhysicalMemory / 1MB, 2)
-    Write-Host "Memoria Total: $totalMemory GB"
-    Write-Host "Memoria Libre: $freeMemory MB"
+    Write-Host -NoNewline -Object ("- {0,-25}: " -f "Memoria Total (GB)") -ForegroundColor Green
+    Write-Host -Object $totalMemory -ForegroundColor White
+    Write-Host -NoNewline -Object ("- {0,-25}: " -f "Memoria Libre (MB)") -ForegroundColor Green
+    Write-Host -Object $freeMemory -ForegroundColor White
 
-    Write-Host "--- Discos Lógicos ---"
-    Get-CimInstance -ClassName Win32_LogicalDisk | Select-Object DeviceID, VolumeName, FileSystem, @{Name="Size(GB)";Expression={[math]::Round($_.Size / 1GB, 2)}}, @{Name="FreeSpace(GB)";Expression={[math]::Round($_.FreeSpace / 1GB, 2)}} | Out-Host
+    Write-Host "`n--- Discos Lógicos ---" -ForegroundColor Cyan
+    Get-CimInstance -ClassName Win32_LogicalDisk | ForEach-Object {
+        Write-Host -NoNewline -Object ("- {0,-25}: " -f "DeviceID") -ForegroundColor Green; Write-Host $_.DeviceID -ForegroundColor White
+        Write-Host -NoNewline -Object ("- {0,-25}: " -f "VolumeName") -ForegroundColor Green; Write-Host $_.VolumeName -ForegroundColor White
+        Write-Host -NoNewline -Object ("- {0,-25}: " -f "FileSystem") -ForegroundColor Green; Write-Host $_.FileSystem -ForegroundColor White
+        Write-Host -NoNewline -Object ("- {0,-25}: " -f "Size(GB)") -ForegroundColor Green; Write-Host ([math]::Round($_.Size / 1GB, 2)) -ForegroundColor White
+        Write-Host -NoNewline -Object ("- {0,-25}: " -f "FreeSpace(GB)") -ForegroundColor Green; Write-Host ([math]::Round($_.FreeSpace / 1GB, 2)) -ForegroundColor White
+        Write-Host ""
+    }
 }
 
 <#
@@ -199,7 +224,19 @@ function Get-ImportantServicesStatus {
     Write-Log -Level INFO -Message "Obteniendo estado de servicios importantes."
     # Lista de servicios a consultar. Se puede modificar según las necesidades.
     $services = @("Spooler", "wuauserv", "BITS", "SysMain")
-    Get-Service -Name $services -ErrorAction SilentlyContinue | Select-Object DisplayName, Name, Status | Out-Host
+    $serviceStatus = Get-Service -Name $services -ErrorAction SilentlyContinue
+
+    if ($serviceStatus) {
+        Write-Host "`n--- Estado de Servicios Importantes ---" -ForegroundColor Cyan
+        $serviceStatus | ForEach-Object {
+            Write-Host -NoNewline -Object ("- {0,-25}: " -f "DisplayName") -ForegroundColor Green; Write-Host $_.DisplayName -ForegroundColor White
+            Write-Host -NoNewline -Object ("- {0,-25}: " -f "Name") -ForegroundColor Green; Write-Host $_.Name -ForegroundColor White
+            
+            $statusColor = if ($_.Status -eq 'Running') { 'Green' } else { 'Red' }
+            Write-Host -NoNewline -Object ("- {0,-25}: " -f "Status") -ForegroundColor Green; Write-Host $_.Status -ForegroundColor $statusColor
+            Write-Host ""
+        }
+    }
 }
 
 <#
