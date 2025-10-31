@@ -280,10 +280,11 @@ function Show-AnalysisMenu {
 function Clear-SystemTempFiles {
     Write-Log -Level INFO -Message "Iniciando limpieza de archivos temporales del sistema."
     $tempPath = "$env:SystemRoot\Temp"
-    $itemsToDelete = Get-ChildItem -Path $tempPath -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.CreationTime -lt (Get-Date).AddDays(-7) } # Solo eliminar elementos de más de 7 días
+    $itemsToDelete = Get-ChildItem -Path $tempPath -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.CreationTime -lt (Get-Date).AddDays(-7) }
+    $filesToDelete = $itemsToDelete | Where-Object { -not $_.PSIsContainer }
     $totalSize = 0
-    if ($itemsToDelete) {
-        $totalSize = ($itemsToDelete | Measure-Object -Property Length -Sum).Sum
+    if ($filesToDelete) {
+        $totalSize = ($filesToDelete | Measure-Object -Property Length -Sum).Sum
     }
 
     try {
@@ -307,10 +308,11 @@ function Clear-SystemTempFiles {
 function Clear-UserTempFiles {
     Write-Log -Level INFO -Message "Iniciando limpieza de archivos temporales del usuario."
     $tempPath = "$env:TEMP"
-    $itemsToDelete = Get-ChildItem -Path $tempPath -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.CreationTime -lt (Get-Date).AddDays(-7) } # Solo eliminar elementos de más de 7 días
+    $itemsToDelete = Get-ChildItem -Path $tempPath -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.CreationTime -lt (Get-Date).AddDays(-7) }
+    $filesToDelete = $itemsToDelete | Where-Object { -not $_.PSIsContainer }
     $totalSize = 0
-    if ($itemsToDelete) {
-        $totalSize = ($itemsToDelete | Measure-Object -Property Length -Sum).Sum
+    if ($filesToDelete) {
+        $totalSize = ($filesToDelete | Measure-Object -Property Length -Sum).Sum
     }
 
     try {
@@ -395,8 +397,9 @@ function Clear-UpdateCache {
 
     if (Test-Path $cachePath) {
         $itemsToDelete = Get-ChildItem -Path $cachePath -Recurse -ErrorAction SilentlyContinue
-        if ($itemsToDelete) {
-            $totalSize = ($itemsToDelete | Measure-Object -Property Length -Sum).Sum
+        $filesToDelete = $itemsToDelete | Where-Object { -not $_.PSIsContainer }
+        if ($filesToDelete) {
+            $totalSize = ($filesToDelete | Measure-Object -Property Length -Sum).Sum
         }
     }
 
@@ -638,11 +641,25 @@ function Set-HighPerformancePowerPlan {
     Write-Log -Level INFO -Message "Intentando aplicar plan de energía de alto rendimiento."
     try {
         # Obtener el GUID del plan de energía de alto rendimiento
-        $highPerformanceGuid = (Get-WmiObject -Class Win32_PowerPlan | Where-Object { $_.ElementName -eq "Alto rendimiento" }).InstanceID
+        $highPerformanceGuid = $null
+        $powercfgOutputLines = (powercfg /list)
+
+        foreach ($line in $powercfgOutputLines) {
+            if ($line -match '(Power Scheme GUID:|GUID de plan de energía:)\s+([0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12})\s+\(([^)]+)\).*' ) {
+                $guid = $matches[2]
+                $name = $matches[4]
+
+                # Check for both Spanish and English names for High Performance
+                if ($name -eq "Alto rendimiento" -or $name -eq "High Performance") {
+                    $highPerformanceGuid = $guid
+                    break # Found it, no need to check further
+                }
+            }
+        }
 
         if ($highPerformanceGuid) {
             # Establecer el plan de energía
-            powercfg.exe /setactive $highPerformanceGuid.Split('{')[1].Split('}')[0]
+            powercfg.exe /setactive $highPerformanceGuid
             Write-Log -Level INFO -Message "Plan de energía establecido en 'Alto rendimiento'."
             Write-Host -ForegroundColor Green "✔ Plan de energía establecido en 'Alto rendimiento'."
         } else {
@@ -824,55 +841,6 @@ function Restore-RegistryBackup {
     } catch {
         Write-Log -Level ERROR -Message "Error al restaurar el Registro: $($_.Exception.Message)"
         Write-Host -ForegroundColor Red "✖ Error al restaurar el Registro: $($_.Exception.Message)"
-    }
-}
-    Write-Log -Level WARNING -Message "--- ¡OPERACIÓN DE ALTO RIESGO! ---"
-    Write-Log -Level WARNING -Message "Restaurar el Registro puede causar daños graves e irreversibles en el sistema si algo sale mal."
-    
-    $backupDir = "$PSScriptRoot\RegistryBackup"
-    if (-not (Test-Path -Path $backupDir)) {
-        Write-Log -Level ERROR -Message "El directorio de copias de seguridad '$backupDir' no existe. No hay nada que restaurar."
-        return
-    }
-
-    $backups = Get-ChildItem -Path $backupDir -Filter "*.reg"
-    if ($backups.Count -eq 0) {
-        Write-Log -Level WARNING -Message "No se encontraron archivos de copia de seguridad (.reg) en $backupDir."
-        return
-    }
-
-    Write-Log -Level INFO -Message "Copias de seguridad disponibles:"
-    for ($i = 0; $i -lt $backups.Count; $i++) {
-        Write-Host ("{0}: {1}" -f ($i + 1), $backups[$i].Name)
-    }
-
-    $choice = Read-Host "Selecciona el NÚMERO del archivo que quieres restaurar (o presiona Enter para cancelar)"
-    if ([string]::IsNullOrWhiteSpace($choice) -or $choice -notmatch '^\d+$') {
-        Write-Log -Level INFO -Message "Restauración cancelada."
-        return
-    }
-
-    $index = [int]$choice - 1
-    if ($index -lt 0 -or $index -ge $backups.Count) {
-        Write-Log -Level ERROR -Message "Selección no válida."
-        return
-    }
-
-    $fileToRestore = $backups[$index]
-    Write-Log -Level WARNING -Message "Has seleccionado restaurar desde el archivo '$($fileToRestore.Name)'."
-    $confirmation = Read-Host "Para confirmar esta acción PELIGROSA, escribe el nombre completo del archivo de nuevo."
-
-    if ($confirmation -eq $fileToRestore.Name) {
-        Write-Log -Level INFO -Message "Iniciando la restauración del Registro desde '$($fileToRestore.FullName)'..."
-        try {
-            reg.exe import "$($fileToRestore.FullName)"
-            Write-Log -Level INFO -Message "Restauración del Registro completada. Se recomienda reiniciar el equipo."
-        }
-        catch {
-            Write-Log -Level ERROR -Message "Ocurrió un error durante la restauración: $_"
-        }
-    } else {
-        Write-Log -Level INFO -Message "La confirmación no coincide. Operación de restauración cancelada."
     }
 }
 
