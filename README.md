@@ -16,6 +16,21 @@ El objetivo principal es la **automatización y la gestión a escala**. En lugar
 
 La visibilidad y el control, antes proporcionados por el menú, se logran ahora a través de métodos más potentes y auditables.
 
+## 🌳 Enfoques de Implementación
+
+Este proyecto ofrece dos enfoques principales para la optimización del sistema, cada uno alojado en una rama de Git diferente para adaptarse a distintas necesidades:
+
+*   **`main` (Módulo PowerShell - Automatización a Escala):**
+    Esta es la rama principal y contiene el proyecto refactorizado como un módulo de PowerShell (`OptiTech.psd1`). Está diseñado para la automatización desatendida y la gestión de flotas de equipos a gran escala mediante comandos (`Invoke-OptiTech`). La documentación detallada para este enfoque se encuentra en este mismo `README.md`.
+
+*   **`feat/menu-driven-enhancements` (Script Interactivo con Automatización):**
+    Esta rama contiene una evolución del script original (`OptiTech.ps1`) que mantiene una interfaz de menú interactiva para uso manual, pero que ha sido mejorada con configuración externa y una opción para ejecutar perfiles de optimización automatizados directamente desde el menú. Es ideal para técnicos que trabajan directamente en una máquina.
+    Para explorar esta versión, puedes cambiar a la rama con:
+    ```bash
+    git checkout feat/menu-driven-enhancements
+    ```
+    La guía de usuario específica para esta versión se encuentra en `README_Interactive.md` dentro de esa rama.
+
 ## ✨ Características Principales
 
 *   **Análisis del Sistema:** Obtiene información detallada sobre el sistema operativo, hardware y servicios.
