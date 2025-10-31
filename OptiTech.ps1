@@ -693,10 +693,15 @@ function Show-OptimizationMenu {
     con una descripción que incluye la fecha y hora actuales.
 #>
 function New-SystemRestorePoint {
-    Write-Log -Level INFO -Message "Creando punto de restauración del sistema..."
-    $description = "OptiTech Restore Point - $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-    Checkpoint-Computer -Description $description
-    Write-Log -Level INFO -Message "Punto de restauración '$description' creado."
+    Write-Log -Level INFO -Message "Creando punto de restauración del sistema."
+    try {
+        Checkpoint-Computer -Description "OptiTech Restore Point"
+        Write-Log -Level INFO -Message "Punto de restauración creado exitosamente."
+        Write-Host -ForegroundColor Green "✔ Punto de restauración creado exitosamente."
+    } catch {
+        Write-Log -Level ERROR -Message "Error al crear punto de restauración: $($_.Exception.Message)"
+        Write-Host -ForegroundColor Red "✖ Error al crear punto de restauración: $($_.Exception.Message)"
+    }
 }
 
 <#
@@ -707,9 +712,26 @@ function New-SystemRestorePoint {
     de los archivos de sistema y repararlos si es necesario.
 #>
 function Run-SFCScan {
-    Write-Log -Level INFO -Message "Ejecutando 'sfc /scannow'... Este proceso puede tardar varios minutos."
-    sfc.exe /scannow
-    Write-Log -Level INFO -Message "'sfc /scannow' completado."
+    Write-Log -Level INFO -Message "Iniciando escaneo SFC (System File Checker)."
+    try {
+        Write-Host -ForegroundColor Yellow "Iniciando 'sfc /scannow'. Esto puede tardar varios minutos..."
+        $sfcOutput = (sfc.exe /scannow | Out-String)
+        
+        if ($sfcOutput -match "Windows Resource Protection did not find any integrity violations.") {
+            Write-Log -Level INFO -Message "Escaneo SFC completado: No se encontraron violaciones de integridad."
+            Write-Host -ForegroundColor Green "✔ Escaneo SFC completado: No se encontraron violaciones de integridad."
+        } elseif ($sfcOutput -match "Windows Resource Protection found corrupt files and successfully repaired them.") {
+            Write-Log -Level INFO -Message "Escaneo SFC completado: Se encontraron y repararon archivos corruptos."
+            Write-Host -ForegroundColor Green "✔ Escaneo SFC completado: Se encontraron y repararon archivos corruptos."
+        } else {
+            Write-Log -Level WARNING -Message "Escaneo SFC completado con otros resultados. Revise la salida para más detalles."
+            Write-Host -ForegroundColor Yellow "⚠ Escaneo SFC completado con otros resultados. Revise la salida para más detalles."
+        }
+        Write-Host -ForegroundColor DarkGray "Salida de SFC:" -NoNewline; Write-Host $sfcOutput -ForegroundColor DarkGray
+    } catch {
+        Write-Log -Level ERROR -Message "Error al ejecutar escaneo SFC: $($_.Exception.Message)"
+        Write-Host -ForegroundColor Red "✖ Error al ejecutar escaneo SFC: $($_.Exception.Message)"
+    }
 }
 
 <#
@@ -720,9 +742,23 @@ function Run-SFCScan {
     de la imagen del sistema operativo.
 #>
 function Run-DISMScan {
-    Write-Log -Level INFO -Message "Ejecutando 'DISM /Online /Cleanup-Image /RestoreHealth'... Este proceso puede tardar varios minutos."
-    dism.exe /online /cleanup-image /restorehealth
-    Write-Log -Level INFO -Message "'DISM /Online /Cleanup-Image /RestoreHealth' completado."
+    Write-Log -Level INFO -Message "Iniciando escaneo DISM (Deployment Image Servicing and Management)."
+    try {
+        Write-Host -ForegroundColor Yellow "Iniciando 'DISM /Online /Cleanup-Image /RestoreHealth'. Esto puede tardar varios minutos..."
+        $dismOutput = Dism.exe /online /Cleanup-Image /RestoreHealth | Out-String
+        
+        if ($dismOutput -match "The restore operation completed successfully.") {
+            Write-Log -Level INFO -Message "Escaneo DISM completado: La operación de restauración se completó exitosamente."
+            Write-Host -ForegroundColor Green "✔ Escaneo DISM completado: La operación de restauración se completó exitosamente."
+        } else {
+            Write-Log -Level WARNING -Message "Escaneo DISM completado con otros resultados. Revise la salida para más detalles."
+            Write-Host -ForegroundColor Yellow "⚠ Escaneo DISM completado con otros resultados. Revise la salida para más detalles."
+        }
+        Write-Host -ForegroundColor DarkGray "Salida de DISM:" -NoNewline; Write-Host $dismOutput -ForegroundColor DarkGray
+    } catch {
+        Write-Log -Level ERROR -Message "Error al ejecutar escaneo DISM: $($_.Exception.Message)"
+        Write-Host -ForegroundColor Red "✖ Error al ejecutar escaneo DISM: $($_.Exception.Message)"
+    }
 }
 
 <#
@@ -734,26 +770,18 @@ function Run-DISMScan {
     separados, usando la fecha y hora actual en el nombre del archivo.
 #>
 function New-RegistryBackup {
-    Write-Log -Level INFO -Message "Iniciando copia de seguridad del Registro..."
-    $backupDir = "$PSScriptRoot\RegistryBackup"
-    if (-not (Test-Path -Path $backupDir)) {
-        New-Item -Path $backupDir -ItemType Directory | Out-Null
-        Write-Log -Level INFO -Message "Directorio de copias de seguridad creado en $backupDir"
-    }
-
-    $timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
-    $hklmPath = "$backupDir\HKLM_backup_$timestamp.reg"
-    $hkcuPath = "$backupDir\HKCU_backup_$timestamp.reg"
-
+    Write-Log -Level INFO -Message "Creando copia de seguridad del Registro."
+    $backupPath = Join-Path $PSScriptRoot "RegistryBackup-$(Get-Date -Format 'yyyyMMdd_HHmmss')"
     try {
-        Write-Log -Level INFO -Message "Exportando HKEY_LOCAL_MACHINE a $hklmPath..."
-        reg.exe export HKLM "$hklmPath" /y
-        Write-Log -Level INFO -Message "Exportando HKEY_CURRENT_USER a $hkcuPath..."
-        reg.exe export HKCU "$hkcuPath" /y
-        Write-Log -Level INFO -Message "Copia de seguridad del Registro completada con éxito."
-    }
-    catch {
-        Write-Log -Level ERROR -Message "Ocurrió un error durante la copia de seguridad del Registro: $_"
+        # Exportar el registro completo
+        reg.exe export HKLM "$backupPath\HKLM.reg" /y
+        reg.exe export HKCU "$backupPath\HKCU.reg" /y
+        
+        Write-Log -Level INFO -Message "Copia de seguridad del Registro creada en: $backupPath"
+        Write-Host -ForegroundColor Green "✔ Copia de seguridad del Registro creada en: $backupPath"
+    } catch {
+        Write-Log -Level ERROR -Message "Error al crear copia de seguridad del Registro: $($_.Exception.Message)"
+        Write-Host -ForegroundColor Red "✖ Error al crear copia de seguridad del Registro: $($_.Exception.Message)"
     }
 }
 
@@ -767,6 +795,37 @@ function New-RegistryBackup {
     Requiere una doble confirmación por parte del usuario.
 #>
 function Restore-RegistryBackup {
+    Write-Log -Level WARNING -Message "Iniciando restauración de copia de seguridad del Registro (Alto Riesgo)."
+    Write-Host -ForegroundColor Red "!!! ADVERTENCIA: La restauración del Registro es una operación de ALTO RIESGO. !!!"
+    Write-Host -ForegroundColor Red "!!! Puede causar inestabilidad en el sistema si la copia de seguridad es incompatible o está dañada. !!!"
+    Write-Host -ForegroundColor Red "!!! Asegúrese de tener una copia de seguridad reciente y un punto de restauración del sistema. !!!"
+    
+    $confirm = Read-Host -Prompt "¿Está seguro de que desea continuar con la restauración del Registro? (S/N)"
+    if ($confirm -ne 'S') {
+        Write-Log -Level INFO -Message "Restauración del Registro cancelada por el usuario."
+        Write-Host -ForegroundColor Yellow "⚠ Restauración del Registro cancelada."
+        return
+    }
+
+    $backupPath = Read-Host -Prompt "Ingrese la ruta COMPLETA de la carpeta de la copia de seguridad del Registro (ej. C:\OptiTech\RegistryBackup-20231026_103000)"
+    if (-not (Test-Path $backupPath)) {
+        Write-Log -Level ERROR -Message "Ruta de copia de seguridad no encontrada: $backupPath"
+        Write-Host -ForegroundColor Red "✖ Error: Ruta de copia de seguridad no encontrada."
+        return
+    }
+
+    try {
+        # Importar el registro completo
+        reg.exe import "$backupPath\HKLM.reg"
+        reg.exe import "$backupPath\HKCU.reg"
+        
+        Write-Log -Level INFO -Message "Restauración del Registro completada desde: $backupPath. Se recomienda reiniciar el sistema."
+        Write-Host -ForegroundColor Green "✔ Restauración del Registro completada desde: $backupPath. Se recomienda reiniciar el sistema."
+    } catch {
+        Write-Log -Level ERROR -Message "Error al restaurar el Registro: $($_.Exception.Message)"
+        Write-Host -ForegroundColor Red "✖ Error al restaurar el Registro: $($_.Exception.Message)"
+    }
+}
     Write-Log -Level WARNING -Message "--- ¡OPERACIÓN DE ALTO RIESGO! ---"
     Write-Log -Level WARNING -Message "Restaurar el Registro puede causar daños graves e irreversibles en el sistema si algo sale mal."
     
@@ -825,23 +884,15 @@ function Restore-RegistryBackup {
     Si la unidad está en uso, programará el análisis para el próximo reinicio del sistema.
 #>
 function Start-ChkdskScan {
-    Write-Log -Level INFO -Message "Iniciando comprobación de disco (chkdsk C: /f /r)..."
-    Write-Log -Level WARNING -Message "Este proceso programará un análisis de la unidad C: en el próximo reinicio."
-    
-    $confirmation = Read-Host "¿Quieres programar un chkdsk en la unidad C: para el próximo reinicio? Escribe 'SI' para confirmar."
-
-    if ($confirmation -eq 'SI') {
-        Write-Log -Level INFO -Message "Programando chkdsk..."
-        try {
-            # Forzamos la respuesta 'S' (Sí) a la pregunta de chkdsk
-            echo 'S' | chkdsk C: /f /r
-            Write-Log -Level INFO -Message "Se ha programado un análisis de disco para el próximo reinicio."
-        }
-        catch {
-            Write-Log -Level ERROR -Message "Ocurrió un error al programar chkdsk: $_"
-        }
-    } else {
-        Write-Log -Level INFO -Message "Operación cancelada por el usuario."
+    Write-Log -Level INFO -Message "Programando comprobación de disco (chkdsk) en el próximo reinicio."
+    try {
+        # Programar chkdsk para la unidad C: en el próximo reinicio
+        chkdsk C: /f /r /x
+        Write-Log -Level INFO -Message "Comprobación de disco (chkdsk) programada para el próximo reinicio. Se recomienda reiniciar el sistema."
+        Write-Host -ForegroundColor Green "✔ Comprobación de disco (chkdsk) programada para el próximo reinicio. Se recomienda reiniciar el sistema."
+    } catch {
+        Write-Log -Level ERROR -Message "Error al programar comprobación de disco (chkdsk): $($_.Exception.Message)"
+        Write-Host -ForegroundColor Red "✖ Error al programar comprobación de disco (chkdsk): $($_.Exception.Message)"
     }
 }
 
