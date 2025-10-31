@@ -247,11 +247,11 @@ function Get-ImportantServicesStatus {
 function Show-AnalysisMenu {
     while ($true) {
         Clear-Host
-        Write-Host "--- Módulo de Análisis ---"
-        Write-Host "1. Información del Sistema Operativo"
-        Write-Host "2. Información del Hardware"
-        Write-Host "3. Estado de Servicios Importantes"
-        Write-Host "V. Volver al menú principal"
+        Write-Host "--- Módulo de Análisis ---" -ForegroundColor Cyan
+        Write-Host -NoNewline "1. " -ForegroundColor Yellow; Write-Host "Información del Sistema Operativo"
+        Write-Host -NoNewline "2. " -ForegroundColor Yellow; Write-Host "Información del Hardware"
+        Write-Host -NoNewline "3. " -ForegroundColor Yellow; Write-Host "Estado de Servicios Importantes"
+        Write-Host -NoNewline "V. " -ForegroundColor Yellow; Write-Host "Volver al menú principal"
 
         $choice = Read-Host "Seleccione una opción"
 
@@ -483,16 +483,16 @@ function Clear-TeamsCache {
 function Show-CleanupMenu {
     while ($true) {
         Clear-Host
-        Write-Host "--- Módulo de Limpieza ---"
-        Write-Host "1. Limpiar archivos temporales del sistema"
-        Write-Host "2. Limpiar archivos temporales del usuario"
-        Write-Host "3. Vaciar la papelera de reciclaje"
-        Write-Host "4. Eliminar puntos de restauración y copias sombra"
-        Write-Host "5. Limpiar caché de Windows Update"
-        Write-Host "6. Desactivar hibernación (libera mucho espacio)"
-        Write-Host "7. Limpiar componentes de Windows (WinSxS)"
-        Write-Host "8. Limpiar caché de Microsoft Teams"
-        Write-Host "V. Volver al menú principal"
+        Write-Host "--- Módulo de Limpieza ---" -ForegroundColor Cyan
+        Write-Host -NoNewline "1. " -ForegroundColor Yellow; Write-Host "Limpiar archivos temporales del sistema"
+        Write-Host -NoNewline "2. " -ForegroundColor Yellow; Write-Host "Limpiar archivos temporales del usuario"
+        Write-Host -NoNewline "3. " -ForegroundColor Yellow; Write-Host "Vaciar la papelera de reciclaje"
+        Write-Host -NoNewline "4. " -ForegroundColor Yellow; Write-Host "Eliminar puntos de restauración y copias sombra"
+        Write-Host -NoNewline "5. " -ForegroundColor Yellow; Write-Host "Limpiar caché de Windows Update"
+        Write-Host -NoNewline "6. " -ForegroundColor Yellow; Write-Host "Desactivar hibernación (libera mucho espacio)"
+        Write-Host -NoNewline "7. " -ForegroundColor Yellow; Write-Host "Limpiar componentes de Windows (WinSxS)"
+        Write-Host -NoNewline "8. " -ForegroundColor Yellow; Write-Host "Limpiar caché de Microsoft Teams"
+        Write-Host -NoNewline "V. " -ForegroundColor Yellow; Write-Host "Volver al menú principal"
 
         $choice = Read-Host "Seleccione una opción"
 
@@ -587,11 +587,11 @@ function Set-HighPerformancePowerPlan {
 function Show-OptimizationMenu {
     while ($true) {
         Clear-Host
-        Write-Host "--- Módulo de Optimización ---"
-        Write-Host "1. Ajustar efectos visuales para mejor rendimiento"
-        Write-Host "2. Gestionar servicios no esenciales"
-        Write-Host "3. Aplicar plan de energía de alto rendimiento"
-        Write-Host "V. Volver al menú principal"
+        Write-Host "--- Módulo de Optimización ---" -ForegroundColor Cyan
+        Write-Host -NoNewline "1. " -ForegroundColor Yellow; Write-Host "Ajustar efectos visuales para mejor rendimiento"
+        Write-Host -NoNewline "2. " -ForegroundColor Yellow; Write-Host "Gestionar servicios no esenciales"
+        Write-Host -NoNewline "3. " -ForegroundColor Yellow; Write-Host "Aplicar plan de energía de alto rendimiento"
+        Write-Host -NoNewline "V. " -ForegroundColor Yellow; Write-Host "Volver al menú principal"
 
         $choice = Read-Host "Seleccione una opción"
 
@@ -777,14 +777,14 @@ function Start-ChkdskScan {
 function Show-MaintenanceMenu {
     while ($true) {
         Clear-Host
-        Write-Host "--- Módulo de Mantenimiento y Copias de Seguridad ---"
-        Write-Host "1. Crear punto de restauración del sistema"
-        Write-Host "2. Ejecutar 'sfc /scannow'"
-        Write-Host "3. Ejecutar 'DISM /Online /Cleanup-Image /RestoreHealth'"
-        Write-Host "4. Crear copia de seguridad del Registro"
-        Write-Host "5. Restaurar copia de seguridad del Registro (Alto Riesgo)"
-        Write-Host "6. Programar comprobación de disco (chkdsk)"
-        Write-Host "V. Volver al menú principal"
+        Write-Host "--- Módulo de Mantenimiento y Copias de Seguridad ---" -ForegroundColor Cyan
+        Write-Host -NoNewline "1. " -ForegroundColor Yellow; Write-Host "Crear punto de restauración del sistema"
+        Write-Host -NoNewline "2. " -ForegroundColor Yellow; Write-Host "Ejecutar 'sfc /scannow'"
+        Write-Host -NoNewline "3. " -ForegroundColor Yellow; Write-Host "Ejecutar 'DISM /Online /Cleanup-Image /RestoreHealth'"
+        Write-Host -NoNewline "4. " -ForegroundColor Yellow; Write-Host "Crear copia de seguridad del Registro"
+        Write-Host -NoNewline "5. " -ForegroundColor Yellow; Write-Host "Restaurar copia de seguridad del Registro (Alto Riesgo)"
+        Write-Host -NoNewline "6. " -ForegroundColor Yellow; Write-Host "Programar comprobación de disco (chkdsk)"
+        Write-Host -NoNewline "V. " -ForegroundColor Yellow; Write-Host "Volver al menú principal"
 
         $choice = Read-Host "Seleccione una opción"
 
@@ -842,17 +842,13 @@ function Renew-IpAddress {
     }
 }
 
-<#
-.SYNOPSIS
-    Muestra el menú del módulo de Red y Conectividad.
-#>
 function Show-NetworkMenu {
     while ($true) {
         Clear-Host
-        Write-Host "--- Módulo de Red y Conectividad ---"
-        Write-Host "1. Limpiar la caché de DNS (flushdns)"
-        Write-Host "2. Renovar la dirección IP (renew)"
-        Write-Host "V. Volver al menú principal"
+        Write-Host "--- Módulo de Red y Conectividad ---" -ForegroundColor Cyan
+        Write-Host -NoNewline "1. " -ForegroundColor Yellow; Write-Host "Limpiar la caché de DNS (flushdns)"
+        Write-Host -NoNewline "2. " -ForegroundColor Yellow; Write-Host "Renovar la dirección IP (renew)"
+        Write-Host -NoNewline "V. " -ForegroundColor Yellow; Write-Host "Volver al menú principal"
 
         $choice = Read-Host "Seleccione una opción"
 
@@ -961,11 +957,11 @@ function Invoke-AutomatedProfile {
 
     while ($true) {
         Clear-Host
-        Write-Host "--- Seleccionar Perfil Automatizado ---"
+        Write-Host "--- Seleccionar Perfil Automatizado ---" -ForegroundColor Cyan
         for ($i = 0; $i -lt $profileNames.Count; $i++) {
-            Write-Host ("{0}. {1}" -f ($i + 1), $profileNames[$i])
+            Write-Host -NoNewline ("{0}. " -f ($i + 1)) -ForegroundColor Yellow; Write-Host $profileNames[$i]
         }
-        Write-Host "V. Volver al menú principal"
+        Write-Host -NoNewline "V. " -ForegroundColor Yellow; Write-Host "Volver al menú principal"
 
         $choice = Read-Host "Seleccione un perfil para ejecutar"
 
@@ -1014,19 +1010,19 @@ Invoke-AdminElevation
 
 while ($true) {
     Clear-Host
-    Write-Host "========================================="
-    Write-Host "   OptiTech System Optimizer"
-    Write-Host "========================================="
+    Write-Host "=========================================" -ForegroundColor Cyan
+    Write-Host "   OptiTech System Optimizer" -ForegroundColor Cyan
+    Write-Host "=========================================" -ForegroundColor Cyan
     Write-Host
-    Write-Host "1. Análisis del Sistema"
-    Write-Host "2. Limpieza del Sistema"
-    Write-Host "3. Optimización del Sistema"
-    Write-Host "4. Mantenimiento y Copias de Seguridad"
-    Write-Host "5. Red y Conectividad"
+    Write-Host -NoNewline "1. " -ForegroundColor Yellow; Write-Host "Análisis del Sistema"
+    Write-Host -NoNewline "2. " -ForegroundColor Yellow; Write-Host "Limpieza del Sistema"
+    Write-Host -NoNewline "3. " -ForegroundColor Yellow; Write-Host "Optimización del Sistema"
+    Write-Host -NoNewline "4. " -ForegroundColor Yellow; Write-Host "Mantenimiento y Copias de Seguridad"
+    Write-Host -NoNewline "5. " -ForegroundColor Yellow; Write-Host "Red y Conectividad"
     Write-Host
-    Write-Host "A. Ejecutar Perfil Automatizado"
+    Write-Host -NoNewline "A. " -ForegroundColor Yellow; Write-Host "Ejecutar Perfil Automatizado"
     Write-Host
-    Write-Host "S. Salir"
+    Write-Host -NoNewline "S. " -ForegroundColor Yellow; Write-Host "Salir"
     Write-Host
 
     $opcion = Read-Host "Seleccione una opción"
