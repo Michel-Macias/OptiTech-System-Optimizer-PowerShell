@@ -940,13 +940,14 @@ function Show-MaintenanceMenu {
     solucionar problemas de conectividad o de acceso a sitios web.
 #>
 function Flush-DnsCache {
-    Write-Log -Level INFO -Message "Limpiando la caché de DNS (ipconfig /flushdns)..."
+    Write-Log -Level INFO -Message "Limpiando la caché de DNS."
     try {
         ipconfig /flushdns
-        Write-Log -Level INFO -Message "Caché de DNS limpiada correctamente."
-    }
-    catch {
-        Write-Log -Level ERROR -Message "Ocurrió un error al limpiar la caché de DNS: $_"
+        Write-Log -Level INFO -Message "Caché de DNS limpiada exitosamente."
+        Write-Host -ForegroundColor Green "✔ Caché de DNS limpiada exitosamente."
+    } catch {
+        Write-Log -Level ERROR -Message "Error al limpiar la caché de DNS: $($_.Exception.Message)"
+        Write-Host -ForegroundColor Red "✖ Error al limpiar la caché de DNS: $($_.Exception.Message)"
     }
 }
 
@@ -958,13 +959,15 @@ function Flush-DnsCache {
     Útil para solucionar problemas de conectividad de red.
 #>
 function Renew-IpAddress {
-    Write-Log -Level INFO -Message "Renovando la dirección IP (ipconfig /renew)..."
+    Write-Log -Level INFO -Message "Renovando la dirección IP."
     try {
+        ipconfig /release
         ipconfig /renew
-        Write-Log -Level INFO -Message "Dirección IP renovada correctamente."
-    }
-    catch {
-        Write-Log -Level ERROR -Message "Ocurrió un error al renovar la dirección IP: $_"
+        Write-Log -Level INFO -Message "Dirección IP renovada exitosamente."
+        Write-Host -ForegroundColor Green "✔ Dirección IP renovada exitosamente."
+    } catch {
+        Write-Log -Level ERROR -Message "Error al renovar la dirección IP: $($_.Exception.Message)"
+        Write-Host -ForegroundColor Red "✖ Error al renovar la dirección IP: $($_.Exception.Message)"
     }
 }
 
