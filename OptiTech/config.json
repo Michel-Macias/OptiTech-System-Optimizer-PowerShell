@@ -8,7 +8,9 @@
       "Clear-SystemTempFiles",
       "Clear-UserTempFiles",
       "Invoke-ClearRecycleBin",
-      "Clear-UpdateCache"
+      "Clear-UpdateCache",
+      "Clear-WinSxSComponent",
+      "Clear-TeamsCache"
     ],
     "OptimizacionEstandar": [
         "Set-PerformanceVisualEffects",
