@@ -1,0 +1,18 @@
+{
+  "ServicesToDisable": [
+    "dmwappushservice",
+    "diagtrack"
+  ],
+  "Profiles": {
+    "LimpiezaProfunda": [
+      "Clear-SystemTempFiles",
+      "Clear-UserTempFiles",
+      "Invoke-ClearRecycleBin",
+      "Clear-UpdateCache"
+    ],
+    "OptimizacionEstandar": [
+        "Set-PerformanceVisualEffects",
+        "Set-HighPerformancePowerPlan"
+    ]
+  }
+}

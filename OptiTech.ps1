@@ -112,6 +112,33 @@ function Write-Log {
     Write-Host $logEntry -ForegroundColor $color
 }
 
+<#
+.SYNOPSIS
+    Carga la configuración desde el archivo config.json.
+.DESCRIPTION
+    Lee el archivo config.json ubicado en la misma carpeta que el script, lo convierte
+    desde formato JSON a un objeto de PowerShell y lo devuelve.
+.OUTPUTS
+    [PSCustomObject] - El objeto de configuración.
+#>
+function Get-OptiTechConfig {
+    $configPath = Join-Path -Path $PSScriptRoot -ChildPath 'config.json'
+
+    if (-not (Test-Path -Path $configPath)) {
+        Write-Warning "El archivo de configuración '$configPath' no se encontró. Se usará la configuración por defecto."
+        return $null # O devolver una configuración por defecto si se desea
+    }
+
+    try {
+        $config = Get-Content -Path $configPath -Raw | ConvertFrom-Json
+        return $config
+    }
+    catch {
+        Write-Warning "Error al leer o procesar el archivo de configuración '$configPath': $_"
+        return $null
+    }
+}
+
 # --- FUNCIONES DE LOS MÓDulos ---
 
 #region Análisis
@@ -380,24 +407,29 @@ function Set-PerformanceVisualEffects {
 
 <#
 .SYNOPSIS
-    Detiene y deshabilita una lista predefinida de servicios no esenciales.
+    Detiene y deshabilita una lista de servicios no esenciales definida en la configuración.
 .DESCRIPTION
-    Recorre una lista de nombres de servicios y, si existen, los detiene
-    y establece su tipo de inicio en 'Deshabilitado'.
+    Carga la lista de servicios desde el archivo config.json. Recorre la lista y, si existen,
+    los detiene y establece su tipo de inicio en 'Deshabilitado'.
 #>
 function Manage-NonEssentialServices {
-    Write-Log -Level INFO -Message "Gestionando servicios no esenciales..."
-    # Lista de servicios a deshabilitar. Añadir o quitar según sea necesario.
-    # 'dmwappushservice': Servicio de enrutamiento de mensajes push de WAP del dispositivo.
-    # 'diagtrack': Experiencias de usuario y telemetría asociadas.
-    $servicesToDisable = @("dmwappushservice", "diagtrack")
+    Write-Log -Level INFO -Message "Gestionando servicios no esenciales según la configuración..."
+    
+    $config = Get-OptiTechConfig
+    if (-not $config -or -not $config.PSObject.Properties.Name -contains 'ServicesToDisable') {
+        Write-Log -Level WARNING -Message "No se encontró una configuración válida o la lista 'ServicesToDisable' en config.json. Omitiendo tarea."
+        return
+    }
+
+    $servicesToDisable = $config.ServicesToDisable
+    
     foreach ($service in $servicesToDisable) {
         if (Get-Service -Name $service -ErrorAction SilentlyContinue) {
             Stop-Service -Name $service -Force -ErrorAction SilentlyContinue
             Set-Service -Name $service -StartupType Disabled -ErrorAction SilentlyContinue
             Write-Log -Level INFO -Message "Servicio $service deshabilitado y detenido."
         } else {
-            Write-Log -Level WARNING -Message "El servicio $service no se encontró."
+            Write-Log -Level WARNING -Message "El servicio '$service' (definido en config.json) no se encontró."
         }
     }
 }
