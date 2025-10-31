@@ -81,11 +81,13 @@ function Initialize-Logging {
 
 <#
 .SYNOPSIS
-    Escribe un mensaje en el archivo de log y en la consola.
+    Escribe un mensaje en el archivo de log y en la consola, y devuelve un objeto de log.
 .PARAMETER Message
     El mensaje que se va a registrar.
 .PARAMETER Level
     El nivel del mensaje (INFO, WARNING, ERROR). Determina el color en la consola.
+.OUTPUTS
+    [PSCustomObject] - Un objeto que representa la entrada de log.
 #>
 function Write-Log {
     param(
@@ -110,6 +112,13 @@ function Write-Log {
         "ERROR"   { "Red" }
     }
     Write-Host $logEntry -ForegroundColor $color
+
+    # Devuelve un objeto de log para el motor de informes.
+    return [PSCustomObject]@{
+        Timestamp = $timestamp
+        Level     = $Level
+        Message   = $Message
+    }
 }
 
 <#
@@ -822,6 +831,140 @@ function Show-NetworkMenu {
 #endregion
 
 
+function Show-NetworkMenu {
+    while ($true) {
+        Clear-Host
+        Write-Host "--- Módulo de Red y Conectividad ---"
+        Write-Host "1. Limpiar la caché de DNS (flushdns)"
+        Write-Host "2. Renovar la dirección IP (renew)"
+        Write-Host "V. Volver al menú principal"
+
+        $choice = Read-Host "Seleccione una opción"
+
+        switch ($choice) {
+            '1' { Flush-DnsCache }
+            '2' { Renew-IpAddress }
+            'V' { return }
+            default { Write-Warning "Opción no válida." }
+        }
+        Read-Host "Presione Enter para continuar..."
+    }
+}
+
+#endregion
+
+<#
+.SYNOPSIS
+    Genera un resumen de las operaciones realizadas por OptiTech.
+
+.DESCRIPTION
+    Esta función toma una colección de objetos de log (generados por Write-Log)
+    y crea un resumen ejecutivo de las acciones, el estado y los resultados clave.
+    El resumen se muestra en la consola.
+
+.PARAMETER LogEntries
+    Colección de objetos PSCustomObject devueltos por la función Write-Log,
+    que representan todas las entradas de log de la ejecución actual.
+#>
+function Write-OptiTechSummary {
+    param(
+        [Parameter(Mandatory=$true)]
+        [PSCustomObject[]]$LogEntries
+    )
+
+    $summary = New-Object System.Text.StringBuilder
+    $summary.AppendLine("\n--- Resumen de Operaciones OptiTech ---")
+    $summary.AppendLine("Fecha y Hora de Ejecución: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')")
+    $summary.AppendLine("----------------------------------------")
+
+    # Contar acciones por nivel
+    $infoCount = ($LogEntries | Where-Object { $_.Level -eq 'INFO' }).Count
+    $warningCount = ($LogEntries | Where-Object { $_.Level -eq 'WARNING' }).Count
+    $errorCount = ($LogEntries | Where-Object { $_.Level -eq 'ERROR' }).Count
+
+    $summary.AppendLine("Acciones INFO: $infoCount")
+    $summary.AppendLine("Advertencias: $warningCount")
+    $summary.AppendLine("Errores: $errorCount")
+    $summary.AppendLine("")
+
+    $summary.AppendLine("Detalles de las acciones (últimos 10 mensajes INFO/WARNING/ERROR):")
+    $LogEntries | Select-Object -Last 10 | ForEach-Object {
+        $summary.AppendLine("  [$($_.Timestamp)] [$($_.Level)] - $($_.Message)")
+    }
+
+    $summary.AppendLine("----------------------------------------")
+    $summary.AppendLine("Log completo disponible en: $script:LogFilePath")
+
+    Write-Host $summary.ToString() -ForegroundColor White
+}
+
+<#
+.SYNOPSIS
+    Permite al usuario seleccionar y ejecutar un perfil de optimización automatizado.
+.DESCRIPTION
+    Carga los perfiles definidos en config.json, los presenta al usuario y ejecuta
+    las tareas asociadas al perfil seleccionado de forma secuencial.
+#>
+function Invoke-AutomatedProfile {
+    $script:CurrentLogEntries = @() # Variable para recopilar logs de esta ejecución automatizada
+
+    Write-Log -Level INFO -Message "Iniciando ejecución de perfil automatizado."
+    $config = Get-OptiTechConfig
+    if (-not $config -or -not $config.Profiles) {
+        $script:CurrentLogEntries += (Write-Log -Level ERROR -Message "No se encontraron perfiles en config.json. Abortando.")
+        return
+    }
+
+    $profileNames = $config.Profiles.PSObject.Properties.Name
+    if ($profileNames.Count -eq 0) {
+        $script:CurrentLogEntries += (Write-Log -Level WARNING -Message "No hay perfiles definidos en config.json. Abortando.")
+        return
+    }
+
+    while ($true) {
+        Clear-Host
+        Write-Host "--- Seleccionar Perfil Automatizado ---"
+        for ($i = 0; $i -lt $profileNames.Count; $i++) {
+            Write-Host ("{0}. {1}" -f ($i + 1), $profileNames[$i])
+        }
+        Write-Host "V. Volver al menú principal"
+
+        $choice = Read-Host "Seleccione un perfil para ejecutar"
+
+        if ($choice -eq 'V') { return }
+
+        if ($choice -match '^\d+$' -and ([int]$choice -gt 0) -and ([int]$choice -le $profileNames.Count)) {
+            $selectedProfileName = $profileNames[[int]$choice - 1]
+            $script:CurrentLogEntries += (Write-Log -Level INFO -Message "Perfil seleccionado: $selectedProfileName. Iniciando tareas...")
+            
+            $tasksToExecute = $config.Profiles.$selectedProfileName
+            foreach ($taskName in $tasksToExecute) {
+                $script:CurrentLogEntries += (Write-Log -Level INFO -Message "Ejecutando tarea: $taskName")
+                if (Get-Command -Name $taskName -CommandType Function -ErrorAction SilentlyContinue) {
+                    try {
+                        # Ejecutar la función y capturar su salida si devuelve algo (aunque Write-Log ya lo hace)
+                        & $taskName
+                        $script:CurrentLogEntries += (Write-Log -Level INFO -Message "Tarea '$taskName' completada.")
+                    }
+                    catch {
+                        $script:CurrentLogEntries += (Write-Log -Level ERROR -Message "Error al ejecutar la tarea '$taskName': $($_.Exception.Message)")
+                    }
+                } else {
+                    $script:CurrentLogEntries += (Write-Log -Level WARNING -Message "La tarea '$taskName' no es una función válida. Omitiendo.")
+                }
+            }
+            $script:CurrentLogEntries += (Write-Log -Level INFO -Message "Ejecución del perfil '$selectedProfileName' finalizada.")
+            Write-OptiTechSummary -LogEntries $script:CurrentLogEntries
+            $script:CurrentLogEntries = @() # Limpiar para la próxima ejecución
+            Read-Host "Presione Enter para continuar..."
+            return
+        } else {
+            Write-Warning "Opción no válida. Por favor, intente de nuevo."
+            Read-Host "Presione Enter para continuar..."
+        }
+    }
+}
+
 # --- INICIALIZACIÓN Y VERIFICACIÓN ---
 
 # Se asegura de que el sistema de logging esté listo.
@@ -843,6 +986,8 @@ while ($true) {
     Write-Host "4. Mantenimiento y Copias de Seguridad"
     Write-Host "5. Red y Conectividad"
     Write-Host
+    Write-Host "A. Ejecutar Perfil Automatizado"
+    Write-Host
     Write-Host "S. Salir"
     Write-Host
 
@@ -854,6 +999,7 @@ while ($true) {
         '3' { Show-OptimizationMenu }
         '4' { Show-MaintenanceMenu }
         '5' { Show-NetworkMenu }
+        'A' { Invoke-AutomatedProfile }
         'S' {
             Write-Host "Saliendo de OptiTech System Optimizer."
             break
