@@ -1,15 +1,22 @@
 # OptiTech System Optimizer (PowerShell)
 
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue.svg)
-![Windows](https://img.shields.io/badge/OS-Windows_11-blue.svg)![License](https://img.shields.io/badge/License-MIT-green.svg)
+![Windows](https://img.shields.io/badge/OS-Windows_11-blue.svg)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 **OptiTech System Optimizer** es un módulo de PowerShell de nivel empresarial diseñado para la limpieza, optimización y mantenimiento de sistemas operativos Windows 11. La herramienta proporciona un conjunto de funciones robustas y configurables que pueden ser ejecutadas de forma desatendida para la gestión de flotas de equipos a gran escala.
 
 ---
 
-## ✨ Características Principales
+## 🧠 Filosofía de Diseño: De Interactivo a Automatizado
 
-El módulo se organiza en varias categorías de funciones para una administración granular del sistema:
+Este módulo es la evolución de un script interactivo basado en menús. El cambio a un modelo de comandos no interactivo es una decisión de diseño deliberada para satisfacer las necesidades de los entornos empresariales modernos.
+
+El objetivo principal es la **automatización y la gestión a escala**. En lugar de requerir que un técnico navegue por menús en cada máquina, este módulo permite a los administradores de sistemas desplegar y ejecutar optimizaciones de forma remota y silenciosa en cientos o miles de equipos a través de herramientas como Microsoft Intune, System Center Configuration Manager (SCCM) o directivas de grupo (GPO).
+
+La visibilidad y el control, antes proporcionados por el menú, se logran ahora a través de métodos más potentes y auditables.
+
+## ✨ Características Principales
 
 *   **Análisis del Sistema:** Obtiene información detallada sobre el sistema operativo, hardware y servicios.
 *   **Limpieza Profunda:** Elimina archivos temporales, cachés (Windows Update, Microsoft Teams), vacía la papelera de reciclaje y limpia componentes obsoletos de WinSxS.
@@ -36,13 +43,21 @@ El módulo se organiza en varias categorías de funciones para una administraci�
     Import-Module -Name .\OptiTech\OptiTech.psd1
     ```
 
-## ⚙️ Uso
+## ⚙️ Uso y Visibilidad
 
-La función principal del módulo es `Invoke-OptiTech`. Ha sido diseñada para una ejecución automatizada y desatendida.
+La función principal del módulo es `Invoke-OptiTech`. Aunque no hay un menú interactivo, el control y la visibilidad sobre las acciones realizadas son totales:
+
+1.  **Control a través de la Configuración:** El archivo `config.json` define de forma transparente qué tareas se incluyen en cada perfil y qué parámetros se utilizan (por ejemplo, la lista de servicios a deshabilitar). El administrador tiene control total sobre el "qué" se ejecuta.
+
+2.  **Control a través de Comandos:** El administrador elige explícitamente "cómo" ejecutar las tareas, ya sea mediante un perfil (`-Profile`) o tareas individuales (`-Task`).
+
+3.  **Visibilidad en Tiempo Real (`-Verbose`):** Para ver en la terminal exactamente lo que el módulo está haciendo en cada momento, simplemente añade el parámetro `-Verbose` al comando. Esto proporciona un seguimiento en vivo de cada operación, reemplazando la necesidad de un menú.
+
+4.  **Visibilidad Post-Ejecución (Informes):** Al finalizar, el módulo generará un resumen de las acciones completadas y los resultados obtenidos (funcionalidad de la Fase 4).
 
 ### Ejemplos
 
-Ejecutar un perfil de limpieza profunda predefinido:
+Ejecutar un perfil de limpieza profunda con seguimiento en tiempo real en la consola:
 ```powershell
 Invoke-OptiTech -Profile LimpiezaProfunda -Verbose
 ```
@@ -54,7 +69,7 @@ Invoke-OptiTech -Task Set-PerformanceVisualEffects, Set-HighPerformancePowerPlan
 
 Generar un informe en una ruta de red centralizada:
 ```powershell
-Invoke-OptiTech -Profile LimpiezaCompleta -LogPath \servidor\logs\equipo01
+Invoke-OptiTech -Profile LimpiezaCompleta -LogPath \\servidor\logs\equipo01
 ```
 
 ## 🔧 Configuración
