@@ -161,7 +161,7 @@ function Get-OptiTechConfig {
 #>
 function Get-OperatingSystemInfo {
     Write-Log -Level INFO -Message "Obteniendo información del sistema operativo."
-    Get-ComputerInfo | Select-Object OsName, OsVersion, OsArchitecture, CsSystemType, WindowsVersion, WindowsProductName, WindowsCurrentVersion, WindowsInstallationType, OsLanguage, OsCountryCode
+    Get-ComputerInfo | Select-Object OsName, OsVersion, OsArchitecture, CsSystemType, WindowsVersion, WindowsProductName, WindowsCurrentVersion, WindowsInstallationType, OsLanguage, OsCountryCode | Out-Host
 }
 
 <#
@@ -175,17 +175,17 @@ function Get-HardwareInfo {
     Write-Log -Level INFO -Message "Obteniendo información del hardware."
     
     Write-Host "--- CPU ---"
-    Get-CimInstance -ClassName Win32_Processor | Select-Object Name, Manufacturer, MaxClockSpeed, NumberOfCores, NumberOfLogicalProcessors
+    Get-CimInstance -ClassName Win32_Processor | Select-Object Name, Manufacturer, MaxClockSpeed, NumberOfCores, NumberOfLogicalProcessors | Out-Host
     
     Write-Host "--- Memoria RAM ---"
-    Get-CimInstance -ClassName Win32_PhysicalMemory | Select-Object Capacity, Manufacturer, Speed
+    Get-CimInstance -ClassName Win32_PhysicalMemory | Select-Object Capacity, Manufacturer, Speed | Out-Host
     $totalMemory = [math]::Round((Get-CimInstance -ClassName Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 2)
     $freeMemory = [math]::Round((Get-CimInstance -ClassName Win32_OperatingSystem).FreePhysicalMemory / 1MB, 2)
     Write-Host "Memoria Total: $totalMemory GB"
     Write-Host "Memoria Libre: $freeMemory MB"
 
     Write-Host "--- Discos Lógicos ---"
-    Get-CimInstance -ClassName Win32_LogicalDisk | Select-Object DeviceID, VolumeName, FileSystem, @{Name="Size(GB)";Expression={[math]::Round($_.Size / 1GB, 2)}}, @{Name="FreeSpace(GB)";Expression={[math]::Round($_.FreeSpace / 1GB, 2)}}
+    Get-CimInstance -ClassName Win32_LogicalDisk | Select-Object DeviceID, VolumeName, FileSystem, @{Name="Size(GB)";Expression={[math]::Round($_.Size / 1GB, 2)}}, @{Name="FreeSpace(GB)";Expression={[math]::Round($_.FreeSpace / 1GB, 2)}} | Out-Host
 }
 
 <#
@@ -199,7 +199,7 @@ function Get-ImportantServicesStatus {
     Write-Log -Level INFO -Message "Obteniendo estado de servicios importantes."
     # Lista de servicios a consultar. Se puede modificar según las necesidades.
     $services = @("Spooler", "wuauserv", "BITS", "SysMain")
-    Get-Service -Name $services -ErrorAction SilentlyContinue | Select-Object DisplayName, Name, Status
+    Get-Service -Name $services -ErrorAction SilentlyContinue | Select-Object DisplayName, Name, Status | Out-Host
 }
 
 <#
