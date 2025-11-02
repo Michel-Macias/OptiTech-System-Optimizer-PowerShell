@@ -288,7 +288,14 @@ function Clear-SystemTempFiles {
     }
 
     try {
-        $itemsToDelete | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        $itemCount = $itemsToDelete.Count
+        for ($i = 0; $i -lt $itemCount; $i++) {
+            $item = $itemsToDelete[$i]
+            $percentComplete = ($i / $itemCount) * 100
+            Write-Progress -Activity "Limpiando archivos temporales del sistema" -Status "Eliminando $($item.Name)" -PercentComplete $percentComplete
+            $item | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        Write-Progress -Activity "Limpiando archivos temporales del sistema" -Completed
 
         $sizeFreedGB = [math]::Round($totalSize / 1GB, 2)
         Write-Log -Level INFO -Message "Limpieza de archivos temporales del sistema completada. Se liberaron $($sizeFreedGB) GB."
@@ -316,7 +323,14 @@ function Clear-UserTempFiles {
     }
 
     try {
-        $itemsToDelete | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        $itemCount = $itemsToDelete.Count
+        for ($i = 0; $i -lt $itemCount; $i++) {
+            $item = $itemsToDelete[$i]
+            $percentComplete = ($i / $itemCount) * 100
+            Write-Progress -Activity "Limpiando archivos temporales del usuario" -Status "Eliminando $($item.Name)" -PercentComplete $percentComplete
+            $item | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        Write-Progress -Activity "Limpiando archivos temporales del usuario" -Completed
 
         $sizeFreedGB = [math]::Round($totalSize / 1GB, 2)
         Write-Log -Level INFO -Message "Limpieza de archivos temporales del usuario completada. Se liberaron $($sizeFreedGB) GB."
@@ -408,7 +422,14 @@ function Clear-UpdateCache {
         Stop-Service -Name wuauserv -ErrorAction SilentlyContinue
         
         if (Test-Path $cachePath) {
-            Remove-Item -Path "$cachePath\*" -Recurse -Force -ErrorAction SilentlyContinue
+            $itemCount = $itemsToDelete.Count
+            for ($i = 0; $i -lt $itemCount; $i++) {
+                $item = $itemsToDelete[$i]
+                $percentComplete = ($i / $itemCount) * 100
+                Write-Progress -Activity "Limpiando caché de Windows Update" -Status "Eliminando $($item.Name)" -PercentComplete $percentComplete
+                $item | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            Write-Progress -Activity "Limpiando caché de Windows Update" -Completed
         }
         
         # Reiniciar el servicio de Windows Update
@@ -460,8 +481,11 @@ function Disable-Hibernation {
 function Clear-WinSxSComponent {
     Write-Log -Level INFO -Message "Iniciando limpieza de componentes de Windows (WinSxS) con DISM."
     try {
-        $dismOutput = Dism.exe /online /Cleanup-Image /StartComponentCleanup /ResetBase | Out-String
-        
+        $job = Start-Job -ScriptBlock { Dism.exe /online /Cleanup-Image /StartComponentCleanup /ResetBase | Out-String }
+        Write-Progress -Activity "Limpiando componentes de Windows (WinSxS)" -Status "Ejecutando DISM... Esto puede tardar varios minutos."
+        $job | Wait-Job
+        $dismOutput = $job | Receive-Job
+
         # DISM no devuelve directamente el espacio liberado en un formato fácil de parsear en la salida estándar
         # Un mensaje de éxito general es más apropiado aquí.
         Write-Log -Level INFO -Message "Limpieza de componentes WinSxS completada. Revise la salida de DISM para detalles."
@@ -500,7 +524,14 @@ function Clear-TeamsCache {
 
     try {
         if (Test-Path $teamsCachePath) {
-            Remove-Item -Path "$teamsCachePath\*" -Recurse -Force -ErrorAction SilentlyContinue
+            $itemCount = $itemsToDelete.Count
+            for ($i = 0; $i -lt $itemCount; $i++) {
+                $item = $itemsToDelete[$i]
+                $percentComplete = ($i / $itemCount) * 100
+                Write-Progress -Activity "Limpiando caché de Microsoft Teams" -Status "Eliminando $($item.Name)" -PercentComplete $percentComplete
+                $item | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            Write-Progress -Activity "Limpiando caché de Microsoft Teams" -Completed
         }
         
         $sizeFreedGB = [math]::Round($totalSize / 1GB, 2)
@@ -732,7 +763,10 @@ function Run-SFCScan {
     Write-Log -Level INFO -Message "Iniciando escaneo SFC (System File Checker)."
     try {
         Write-Host -ForegroundColor Yellow "Iniciando 'sfc /scannow'. Esto puede tardar varios minutos..."
-        $sfcOutput = (sfc.exe /scannow | Out-String)
+        $job = Start-Job -ScriptBlock { sfc.exe /scannow | Out-String }
+        Write-Progress -Activity "Ejecutando escaneo SFC" -Status "Verificando integridad de archivos del sistema..."
+        $job | Wait-Job
+        $sfcOutput = $job | Receive-Job
         
         if ($sfcOutput -match "Windows Resource Protection did not find any integrity violations.") {
             Write-Log -Level INFO -Message "Escaneo SFC completado: No se encontraron violaciones de integridad."
@@ -762,7 +796,10 @@ function Run-DISMScan {
     Write-Log -Level INFO -Message "Iniciando escaneo DISM (Deployment Image Servicing and Management)."
     try {
         Write-Host -ForegroundColor Yellow "Iniciando 'DISM /Online /Cleanup-Image /RestoreHealth'. Esto puede tardar varios minutos..."
-        $dismOutput = Dism.exe /online /Cleanup-Image /RestoreHealth | Out-String
+        $job = Start-Job -ScriptBlock { Dism.exe /online /Cleanup-Image /RestoreHealth | Out-String }
+        Write-Progress -Activity "Ejecutando escaneo DISM" -Status "Reparando imagen de Windows..."
+        $job | Wait-Job
+        $dismOutput = $job | Receive-Job
         
         if ($dismOutput -match "The restore operation completed successfully.") {
             Write-Log -Level INFO -Message "Escaneo DISM completado: La operación de restauración se completó exitosamente."
