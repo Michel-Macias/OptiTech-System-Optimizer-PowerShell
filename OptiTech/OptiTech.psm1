@@ -6,5 +6,8 @@ Get-ChildItem -Path "$script:g_OptiTechRoot\Functions" -Filter "*.ps1" -Recurse 
     . $_.FullName
 }
 
+# Inicializar el sistema de logging para que esté disponible para todas las funciones.
+Initialize-Logging
+
 # Exportar explícitamente solo las funciones públicas para el usuario final
 Export-ModuleMember -Function 'Invoke-OptiTech', 'Invoke-OptiTechTask'
