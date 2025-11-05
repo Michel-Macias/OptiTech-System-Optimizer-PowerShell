@@ -7,4 +7,4 @@ Get-ChildItem -Path "$script:g_OptiTechRoot\Functions" -Filter "*.ps1" -Recurse 
 }
 
 # Exportar explícitamente solo las funciones públicas para el usuario final
-Export-ModuleMember -Function 'Invoke-OptiTech'
+Export-ModuleMember -Function 'Invoke-OptiTech', 'Invoke-OptiTechTask'

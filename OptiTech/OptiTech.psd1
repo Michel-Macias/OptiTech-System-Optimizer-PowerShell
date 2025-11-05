@@ -4,7 +4,8 @@
     Author = "Experto Desarrollador de PowerShell"
     Description = "Módulo de PowerShell para la optimización, limpieza y mantenimiento de sistemas Windows 11."
     FunctionsToExport = @(
-        "Invoke-OptiTech"
+        "Invoke-OptiTech",
+        "Invoke-OptiTechTask"
     )
     PrivateData = @{
         PSData = @{
