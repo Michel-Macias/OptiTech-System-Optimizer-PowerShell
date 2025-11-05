@@ -24,14 +24,6 @@ function Write-Log {
     # Añade la entrada al archivo de log.
     Add-Content -Path $script:LogFilePath -Value $logEntry
 
-    # Muestra la entrada en la consola con un color distintivo según el nivel.
-    $color = switch ($Level) {
-        "INFO"    { "White" }
-        "WARNING" { "Yellow" }
-        "ERROR"   { "Red" }
-    }
-    Write-Host $logEntry -ForegroundColor $color
-
     # Devuelve un objeto de log para el motor de informes.
     return [PSCustomObject]@{
         Timestamp = $timestamp
