@@ -8,8 +8,8 @@
     [PSCustomObject] - El objeto de configuración.
 #>
 function Get-OptiTechConfig {
-    # $PSScriptRoot se define en el .psm1 y es accesible para todas las funciones del módulo.
-    $configPath = Join-Path -Path $PSScriptRoot -ChildPath 'config.json'
+    # Se utiliza la variable de script definida en el .psm1 para encontrar la raíz del módulo.
+    $configPath = Join-Path -Path $script:g_OptiTechRoot -ChildPath 'config.json'
 
     if (-not (Test-Path -Path $configPath)) {
         Write-Error "El archivo de configuración '$configPath' no se encontró."
