@@ -212,10 +212,10 @@ while ($true) {
     Write-Host "=========================================" -ForegroundColor Cyan
     Write-Host
     Write-Host -NoNewline "1. " -ForegroundColor Yellow; Write-Host "Análisis del Sistema"
-    Write-Host -NoNewline "2. " -ForegroundColor Yellow; Write-Host "Limpieza del Sistema (Modo Simulación)"
-    Write-Host -NoNewline "3. " -ForegroundColor Yellow; Write-Host "Optimización del Sistema (Modo Simulación)"
-    Write-Host -NoNewline "4. " -ForegroundColor Yellow; Write-Host "Mantenimiento y Copias de Seguridad (Modo Simulación)"
-    Write-Host -NoNewline "5. " -ForegroundColor Yellow; Write-Host "Red y Conectividad (Modo Simulación)"
+    Write-Host -NoNewline "2. " -ForegroundColor Yellow; Write-Host "Limpieza del Sistema"
+    Write-Host -NoNewline "3. " -ForegroundColor Yellow; Write-Host "Optimización del Sistema"
+    Write-Host -NoNewline "4. " -ForegroundColor Yellow; Write-Host "Mantenimiento y Copias de Seguridad"
+    Write-Host -NoNewline "5. " -ForegroundColor Yellow; Write-Host "Red y Conectividad"
     Write-Host
     Write-Host -NoNewline "A. " -ForegroundColor Yellow; Write-Host "Ejecutar Perfil Automatizado (Modo Simulación)"
     Write-Host
