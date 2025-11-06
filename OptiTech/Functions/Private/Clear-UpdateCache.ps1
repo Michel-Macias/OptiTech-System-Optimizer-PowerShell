@@ -1,26 +1,60 @@
-<#
+﻿<#
 .SYNOPSIS
-    Limpia la caché de descargas de Windows Update.
+    Limpia la cache de descargas de Windows Update.
 .DESCRIPTION
-    Detiene el servicio de Windows Update, elimina los archivos de la caché de descargas
+    Detiene el servicio de Windows Update, elimina los archivos de la cache de descargas
     y reinicia el servicio. Esto puede solucionar problemas con Windows Update y liberar espacio.
 #>
 function Clear-UpdateCache {
-    Write-Log -Level INFO -Message "Limpiando la caché de Windows Update..."
-    $path = "$env:SystemRoot\SoftwareDistribution\Download"
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param()
 
-    Write-Log -Level INFO -Message "Deteniendo el servicio de Windows Update (wuauserv)..."
-    Stop-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
-
-    if (Test-Path -Path $path) {
-        Write-Log -Level INFO -Message "Eliminando archivos de $path..."
-        Remove-Item -Path "$path\*" -Recurse -Force -ErrorAction SilentlyContinue
-        Write-Log -Level INFO -Message "Archivos de la caché de Windows Update eliminados."
-    } else {
-        Write-Log -Level WARNING -Message "El directorio de la caché de Windows Update no se encontró en $path."
+    if (-not (Test-IsAdmin)) {
+        $errorMessage = "Se requieren privilegios de Administrador para limpiar la cache de Windows Update."
+        Write-Log -Level ERROR -Message $errorMessage | Out-Null
+        Write-Host -ForegroundColor Red "(ERROR) $errorMessage"
+        return
     }
 
-    Write-Log -Level INFO -Message "Iniciando el servicio de Windows Update (wuauserv)..."
-    Start-Service -Name wuauserv
-    Write-Log -Level INFO -Message "Limpieza de caché de Windows Update completada."
+    Write-Log -Level INFO -Message "Iniciando limpieza de la cache de Windows Update..." | Out-Null
+    Write-Host -ForegroundColor White "`nIniciando limpieza de la cache de Windows Update..."
+
+    $serviceName = "wuauserv"
+    $updateCachePath = "$env:SystemRoot\SoftwareDistribution\Download"
+
+    try {
+        Write-Host -ForegroundColor White "- Deteniendo el servicio de Windows Update ($serviceName)..."
+        Stop-Service -Name $serviceName -Force -ErrorAction Stop
+        Write-Log -Level INFO -Message "Servicio $serviceName detenido." | Out-Null
+
+        if ($pscmdlet.ShouldProcess($updateCachePath, "Limpiar cache de Windows Update")) {
+            Write-Host -ForegroundColor White "- Limpiando la cache en $updateCachePath..."
+            $items = Get-ChildItem -Path $updateCachePath -Recurse
+            if ($items) {
+                Remove-Item -Path $items.FullName -Force -Recurse -ErrorAction Stop
+                $message = "Cache de Windows Update limpiada."
+                Write-Log -Level INFO -Message $message | Out-Null
+                Write-Host -ForegroundColor Green "  (OK) $message"
+            } else {
+                $message = "La cache de Windows Update ya estaba vacia."
+                Write-Log -Level INFO -Message $message | Out-Null
+                Write-Host -ForegroundColor Green "  (OK) $message"
+            }
+        }
+
+    } catch {
+        $errorMessage = "Ocurrio un error durante la limpieza de la cache de Windows Update."
+        Write-Log -Level ERROR -Message "$errorMessage Detalle: $_" | Out-Null
+        Write-Host -ForegroundColor Red "(ERROR) $errorMessage"
+
+    } finally {
+        Write-Host -ForegroundColor White "- Reiniciando el servicio de Windows Update ($serviceName)..."
+        Start-Service -Name $serviceName -ErrorAction SilentlyContinue
+        Write-Log -Level INFO -Message "Servicio $serviceName iniciado." | Out-Null
+    }
+
+    $finalMessage = "Proceso de limpieza de cache de Windows Update completado."
+    Write-Log -Level INFO -Message $finalMessage | Out-Null
+    Write-Host -ForegroundColor Green "`n(OK) $finalMessage"
 }
+

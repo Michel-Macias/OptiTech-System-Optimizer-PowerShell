@@ -20,6 +20,8 @@ try {
 catch {
     Write-Host -ForegroundColor Red "Error Crítico: No se pudo importar el módulo OptiTech."
     Write-Host -ForegroundColor Red "Asegúrese de que el directorio 'OptiTech' se encuentra en la misma carpeta que este script."
+    Write-Host -ForegroundColor Red "Detalles del error: $($_.Exception.Message)"
+    Write-Host -ForegroundColor Red "StackTrace: $($_.ScriptStackTrace)"
     Read-Host "Presione Enter para salir."
     exit
 }
@@ -39,11 +41,11 @@ function Show-AnalysisMenu {
 
         $choice = Read-Host "Seleccione una opción"
 
-        # En el módulo de análisis, las tareas son de solo lectura, por lo que no se necesita -WhatIf.
+        # En el módulo de análisis, las tareas son de solo lectura.
         switch ($choice) {
-            '1' { Invoke-OptiTech -Task Get-OperatingSystemInfo }
-            '2' { Invoke-OptiTech -Task Get-HardwareInfo }
-            '3' { Invoke-OptiTech -Task Get-ImportantServicesStatus }
+            '1' { Invoke-OptiTechTask -TaskName Get-OperatingSystemInfo }
+            '2' { Invoke-OptiTechTask -TaskName Get-HardwareInfo }
+            '3' { Invoke-OptiTechTask -TaskName Get-ImportantServicesStatus }
             'V' { return }
             default { Write-Warning "Opción no válida." }
         }
@@ -55,8 +57,6 @@ function Show-CleanupMenu {
     while ($true) {
         Clear-Host
         Write-Host "--- Módulo de Limpieza ---" -ForegroundColor Cyan
-        Write-Host "Las operaciones se ejecutarán en modo 'WhatIf' (simulación). No se realizarán cambios." -ForegroundColor Magenta
-        Write-Host "Para ejecutar los cambios, edite este script y elimine el parámetro '-WhatIf'." -ForegroundColor Magenta
 
         Write-Host -NoNewline "1. " -ForegroundColor Yellow; Write-Host "Limpiar archivos temporales del sistema"
         Write-Host -NoNewline "2. " -ForegroundColor Yellow; Write-Host "Limpiar archivos temporales del usuario"
@@ -70,16 +70,15 @@ function Show-CleanupMenu {
 
         $choice = Read-Host "Seleccione una opción"
 
-        # Todas estas tareas modifican el sistema. Usamos -WhatIf para una ejecución segura por defecto.
         switch ($choice) {
-            '1' { Invoke-OptiTech -Task Clear-SystemTempFiles -WhatIf }
-            '2' { Invoke-OptiTech -Task Clear-UserTempFiles -WhatIf }
-            '3' { Invoke-OptiTech -Task Invoke-ClearRecycleBin -WhatIf }
-            '4' { Invoke-OptiTech -Task Remove-SystemRestorePoints -WhatIf } # El nombre se mantiene por consistencia
-            '5' { Invoke-OptiTech -Task Clear-UpdateCache -WhatIf }
-            '6' { Invoke-OptiTech -Task Disable-Hibernation -WhatIf }
-            '7' { Invoke-OptiTech -Task Clear-WinSxSComponent -WhatIf }
-            '8' { Invoke-OptiTech -Task Clear-TeamsCache -WhatIf }
+            '1' { Invoke-OptiTechTask -TaskName Clear-SystemTempFiles }
+            '2' { Invoke-OptiTechTask -TaskName Clear-UserTempFiles }
+            '3' { Invoke-OptiTechTask -TaskName Invoke-ClearRecycleBin }
+            '4' { Invoke-OptiTechTask -TaskName Remove-SystemRestorePoints } # El nombre se mantiene por consistencia
+            '5' { Invoke-OptiTechTask -TaskName Clear-UpdateCache }
+            '6' { Invoke-OptiTechTask -TaskName Disable-Hibernation }
+            '7' { Invoke-OptiTechTask -TaskName Clear-WinSxSComponent }
+            '8' { Invoke-OptiTechTask -TaskName Clear-TeamsCache }
             'V' { return }
             default { Write-Warning "Opción no válida." }
         }
@@ -91,20 +90,20 @@ function Show-OptimizationMenu {
     while ($true) {
         Clear-Host
         Write-Host "--- Módulo de Optimización ---" -ForegroundColor Cyan
-        Write-Host "Las operaciones se ejecutarán en modo 'WhatIf' (simulación). No se realizarán cambios." -ForegroundColor Magenta
-        Write-Host "Para ejecutar los cambios, edite este script y elimine el parámetro '-WhatIf'." -ForegroundColor Magenta
 
         Write-Host -NoNewline "1. " -ForegroundColor Yellow; Write-Host "Ajustar efectos visuales para mejor rendimiento"
-        Write-Host -NoNewline "2. " -ForegroundColor Yellow; Write-Host "Gestionar servicios no esenciales"
-        Write-Host -NoNewline "3. " -ForegroundColor Yellow; Write-Host "Aplicar plan de energía de alto rendimiento"
+        Write-Host -NoNewline "2. " -ForegroundColor Yellow; Write-Host "Deshabilitar servicios no esenciales"
+        Write-Host -NoNewline "3. " -ForegroundColor Yellow; Write-Host "Restaurar servicios no esenciales"
+        Write-Host -NoNewline "4. " -ForegroundColor Yellow; Write-Host "Aplicar plan de energía de alto rendimiento"
         Write-Host -NoNewline "V. " -ForegroundColor Yellow; Write-Host "Volver al menú principal"
 
         $choice = Read-Host "Seleccione una opción"
 
         switch ($choice) {
-            '1' { Invoke-OptiTech -Task Set-PerformanceVisualEffects -WhatIf }
-            '2' { Invoke-OptiTech -Task Manage-NonEssentialServices -WhatIf }
-            '3' { Invoke-OptiTech -Task Set-HighPerformancePowerPlan -WhatIf }
+            '1' { Invoke-OptiTechTask -TaskName Set-PerformanceVisualEffects }
+            '2' { Invoke-OptiTechTask -TaskName Manage-NonEssentialServices -Action "Disable" }
+            '3' { Invoke-OptiTechTask -TaskName Manage-NonEssentialServices -Action "Restore" }
+            '4' { Invoke-OptiTechTask -TaskName Set-HighPerformancePowerPlan }
             'V' { return }
             default { Write-Warning "Opción no válida." }
         }
@@ -116,8 +115,6 @@ function Show-MaintenanceMenu {
     while ($true) {
         Clear-Host
         Write-Host "--- Módulo de Mantenimiento y Copias de Seguridad ---" -ForegroundColor Cyan
-        Write-Host "Las operaciones se ejecutarán en modo 'WhatIf' (simulación). No se realizarán cambios." -ForegroundColor Magenta
-        Write-Host "Para ejecutar los cambios, edite este script y elimine el parámetro '-WhatIf'." -ForegroundColor Magenta
 
         Write-Host -NoNewline "1. " -ForegroundColor Yellow; Write-Host "Crear punto de restauración del sistema"
         Write-Host -NoNewline "2. " -ForegroundColor Yellow; Write-Host "Ejecutar 'sfc /scannow'"
@@ -130,12 +127,12 @@ function Show-MaintenanceMenu {
         $choice = Read-Host "Seleccione una opción"
 
         switch ($choice) {
-            '1' { Invoke-OptiTech -Task New-SystemRestorePoint -WhatIf }
-            '2' { Invoke-OptiTech -Task Run-SFCScan -WhatIf }
-            '3' { Invoke-OptiTech -Task Run-DISMScan -WhatIf }
-            '4' { Invoke-OptiTech -Task New-RegistryBackup -WhatIf }
-            '5' { Invoke-OptiTech -Task Restore-RegistryBackup -WhatIf } # Esta tarea ya tiene confirmaciones internas
-            '6' { Invoke-OptiTech -Task Start-ChkdskScan -WhatIf }
+            '1' { Invoke-OptiTechTask -TaskName New-SystemRestorePoint }
+            '2' { Invoke-OptiTechTask -TaskName Run-SFCScan }
+            '3' { Invoke-OptiTechTask -TaskName Run-DISMScan }
+            '4' { Invoke-OptiTechTask -TaskName New-RegistryBackup }
+            '5' { Invoke-OptiTechTask -TaskName Restore-RegistryBackup } # Esta tarea ya tiene confirmaciones internas
+            '6' { Invoke-OptiTechTask -TaskName Start-ChkdskScan }
             'V' { return }
             default { Write-Warning "Opción no válida." }
         }
@@ -147,8 +144,6 @@ function Show-NetworkMenu {
     while ($true) {
         Clear-Host
         Write-Host "--- Módulo de Red y Conectividad ---" -ForegroundColor Cyan
-        Write-Host "Las operaciones se ejecutarán en modo 'WhatIf' (simulación). No se realizarán cambios." -ForegroundColor Magenta
-        Write-Host "Para ejecutar los cambios, edite este script y elimine el parámetro '-WhatIf'." -ForegroundColor Magenta
 
         Write-Host -NoNewline "1. " -ForegroundColor Yellow; Write-Host "Limpiar la caché de DNS (flushdns)"
         Write-Host -NoNewline "2. " -ForegroundColor Yellow; Write-Host "Renovar la dirección IP (renew)"
@@ -157,8 +152,8 @@ function Show-NetworkMenu {
         $choice = Read-Host "Seleccione una opción"
 
         switch ($choice) {
-            '1' { Invoke-OptiTech -Task Flush-DnsCache -WhatIf }
-            '2' { Invoke-OptiTech -Task Renew-IpAddress -WhatIf }
+            '1' { Invoke-OptiTechTask -TaskName Flush-DnsCache }
+            '2' { Invoke-OptiTechTask -TaskName Renew-IpAddress }
             'V' { return }
             default { Write-Warning "Opción no válida." }
         }
@@ -221,10 +216,10 @@ while ($true) {
     Write-Host "=========================================" -ForegroundColor Cyan
     Write-Host
     Write-Host -NoNewline "1. " -ForegroundColor Yellow; Write-Host "Análisis del Sistema"
-    Write-Host -NoNewline "2. " -ForegroundColor Yellow; Write-Host "Limpieza del Sistema (Modo Simulación)"
-    Write-Host -NoNewline "3. " -ForegroundColor Yellow; Write-Host "Optimización del Sistema (Modo Simulación)"
-    Write-Host -NoNewline "4. " -ForegroundColor Yellow; Write-Host "Mantenimiento y Copias de Seguridad (Modo Simulación)"
-    Write-Host -NoNewline "5. " -ForegroundColor Yellow; Write-Host "Red y Conectividad (Modo Simulación)"
+    Write-Host -NoNewline "2. " -ForegroundColor Yellow; Write-Host "Limpieza del Sistema"
+    Write-Host -NoNewline "3. " -ForegroundColor Yellow; Write-Host "Optimización del Sistema"
+    Write-Host -NoNewline "4. " -ForegroundColor Yellow; Write-Host "Mantenimiento y Copias de Seguridad"
+    Write-Host -NoNewline "5. " -ForegroundColor Yellow; Write-Host "Red y Conectividad"
     Write-Host
     Write-Host -NoNewline "A. " -ForegroundColor Yellow; Write-Host "Ejecutar Perfil Automatizado (Modo Simulación)"
     Write-Host
