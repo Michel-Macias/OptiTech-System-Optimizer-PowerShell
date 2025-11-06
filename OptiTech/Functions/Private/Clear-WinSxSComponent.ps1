@@ -1,26 +1,58 @@
-<#
+﻿<#
 .SYNOPSIS
     Limpia los componentes de Windows desactualizados en la carpeta WinSxS.
 
 .DESCRIPTION
-    Ejecuta la herramienta DISM (Deployment Image Servicing and Management) con los parámetros
+    Ejecuta la herramienta DISM (Deployment Image Servicing and Management) con los parametros
     /Online /Cleanup-Image /StartComponentCleanup para eliminar versiones antiguas de componentes
-    de Windows. Esta operación puede liberar una cantidad significativa de espacio en disco.
+    de Windows. Esta operacion puede liberar una cantidad significativa de espacio en disco.
     Es un proceso que puede tardar varios minutos.
 
 .NOTES
     Requiere privilegios de administrador para ejecutarse correctamente.
 #>
 function Clear-WinSxSComponent {
-    Write-Log -Level INFO -Message "Iniciando limpieza de componentes de Windows (WinSxS)..."
-    Write-Log -Level INFO -Message "Ejecutando 'Dism.exe /online /Cleanup-Image /StartComponentCleanup'. Este proceso puede tardar bastante."
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param()
+
+    if (-not (Test-IsAdmin)) {
+        $errorMessage = "Se requieren privilegios de Administrador para realizar una limpieza del almacen de componentes (WinSxS)."
+        Write-Log -Level ERROR -Message $errorMessage | Out-Null
+        Write-Host -ForegroundColor Red "(ERROR) $errorMessage"
+        return
+    }
+
+    $message = "La limpieza del almacen de componentes (WinSxS) puede tardar mucho tiempo y podria requerir reinicios. Desea continuar?"
+    Write-Host -ForegroundColor Yellow "`n$message"
+    $confirmation = Read-Host "Escribe 'SI' para confirmar."
+
+    if ($confirmation -ne 'SI') {
+        $cancelMessage = "Operacion cancelada por el usuario."
+        Write-Log -Level INFO -Message $cancelMessage | Out-Null
+        Write-Host -ForegroundColor Yellow "$cancelMessage"
+        return
+    }
+
+    Write-Log -Level INFO -Message "Iniciando limpieza del almacen de componentes (WinSxS)..." | Out-Null
+    Write-Host -ForegroundColor White "`nIniciando analisis y limpieza del almacen de componentes (WinSxS)..."
 
     try {
-        # Se redirige la salida para un futuro análisis si fuera necesario, pero el log principal informa del inicio/fin.
-        Dism.exe /online /Cleanup-Image /StartComponentCleanup | Out-Null
-        Write-Log -Level INFO -Message "La limpieza de componentes de WinSxS ha finalizado correctamente."
-    }
-    catch {
-        Write-Log -Level ERROR -Message "Ocurrió un error durante la limpieza de WinSxS con DISM: $_"
+        Write-Host -ForegroundColor White "- Analizando el almacen de componentes... (Esto puede tardar)"
+        Dism.exe /Online /Cleanup-Image /AnalyzeComponentStore | Out-Null
+        Write-Log -Level INFO -Message "Analisis de WinSxS completado." | Out-Null
+
+        if ($pscmdlet.ShouldProcess("Almacen de Componentes", "Limpiar con reseteo de base")) {
+            Write-Host -ForegroundColor White "- Iniciando la limpieza... (Esto puede tardar mucho tiempo)"
+            Dism.exe /Online /Cleanup-Image /StartComponentCleanup /ResetBase | Out-Null
+            $successMessage = "Limpieza del almacen de componentes (WinSxS) completada con exito."
+            Write-Log -Level INFO -Message $successMessage | Out-Null
+            Write-Host -ForegroundColor Green "(OK) $successMessage"
+        }
+    } catch {
+        $errorMessage = "Ocurrio un error durante la limpieza de WinSxS."
+        Write-Log -Level ERROR -Message "$errorMessage Detalle: $_" | Out-Null
+        Write-Host -ForegroundColor Red "(ERROR) $errorMessage"
+        Write-Host -ForegroundColor Red "Asegurate de estar ejecutando el script como Administrador."
     }
 }
+

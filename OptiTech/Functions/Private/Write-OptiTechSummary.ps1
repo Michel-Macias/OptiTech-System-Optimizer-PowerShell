@@ -1,19 +1,19 @@
-<#
+﻿<#
 .SYNOPSIS
     Genera un resumen de las operaciones realizadas por OptiTech.
 
 .DESCRIPTION
-    Esta función toma una colección de objetos de log (generados por Write-Log)
+    Esta funcion toma una coleccion de objetos de log (generados por Write-Log)
     y crea un resumen ejecutivo de las acciones, el estado y los resultados clave.
     El resumen se puede mostrar en la consola y/o guardar en un archivo.
 
 .PARAMETER LogEntries
-    Colección de objetos PSCustomObject devueltos por la función Write-Log,
-    que representan todas las entradas de log de la ejecución actual.
+    Coleccion de objetos PSCustomObject devueltos por la funcion Write-Log,
+    que representan todas las entradas de log de la ejecucion actual.
 
 .PARAMETER OutputPath
-    Ruta completa donde se guardará el archivo de resumen. Si no se especifica,
-    el resumen solo se mostrará en la consola.
+    Ruta completa donde se guardara el archivo de resumen. Si no se especifica,
+    el resumen solo se mostrara en la consola.
 
 .OUTPUTS
     [string] - El contenido del resumen generado.
@@ -29,7 +29,7 @@ function Write-OptiTechSummary {
 
     $summary = New-Object System.Text.StringBuilder
     $summary.AppendLine("--- Resumen de Operaciones OptiTech ---")
-    $summary.AppendLine("Fecha y Hora de Ejecución: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')")
+    $summary.AppendLine("Fecha y Hora de Ejecucion: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')")
     $summary.AppendLine("----------------------------------------")
 
     # Contar acciones por nivel
@@ -42,9 +42,9 @@ function Write-OptiTechSummary {
     $summary.AppendLine("Errores: $errorCount")
     $summary.AppendLine("")
 
-    # Aquí se podría añadir lógica más compleja para extraer espacio liberado, servicios deshabilitados, etc.
-    # Por ahora, un resumen básico de los logs.
-    $summary.AppendLine("Detalles de las acciones (últimos 10 mensajes INFO/WARNING/ERROR):")
+    # Aqui se podria anadir logica mas compleja para extraer espacio liberado, servicios deshabilitados, etc.
+    # Por ahora, un resumen bÃ¡sico de los logs.
+    $summary.AppendLine("Detalles de las acciones (ultimos 10 mensajes INFO/WARNING/ERROR):")
     $LogEntries | Select-Object -Last 10 | ForEach-Object {
         $summary.AppendLine("  [$($_.Timestamp)] [$($_.Level)] - $($_.Message)")
     }
@@ -68,3 +68,4 @@ function Write-OptiTechSummary {
     Write-Host "`n$summaryContent`n"
     return $summaryContent
 }
+

@@ -1,9 +1,9 @@
-<#
+﻿<#
 .SYNOPSIS
-    Verifica si el script se está ejecutando con privilegios de administrador.
+    Verifica si el script se esta ejecutando con privilegios de administrador.
 .DESCRIPTION
-    Intenta acceder a una clave del registro en HKLM que requiere elevación.
-    Si tiene éxito, devuelve $true; de lo contrario, captura la excepción y devuelve $false.
+    Intenta acceder a una clave del registro en HKLM que requiere elevacion.
+    Si tiene exito, devuelve $true; de lo contrario, captura la excepcion y devuelve $false.
 .OUTPUTS
     [bool] - $true si es administrador, $false en caso contrario.
 #>
@@ -18,3 +18,4 @@ function Test-IsAdmin {
         return $false
     }
 }
+

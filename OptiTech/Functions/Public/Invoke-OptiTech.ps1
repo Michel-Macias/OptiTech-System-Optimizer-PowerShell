@@ -1,31 +1,31 @@
-<#
+﻿<#
 .SYNOPSIS
-    Ejecuta perfiles o tareas de optimización del sistema de forma desatendida.
+    Ejecuta perfiles o tareas de optimizacion del sistema de forma desatendida.
 
 .DESCRIPTION
-    Función principal del módulo OptiTech. Permite ejecutar conjuntos de tareas predefinidas (perfiles)
-    o tareas individuales para la limpieza, optimización y mantenimiento de Windows 11.
-    Esta función está diseñada para la automatización y no requiere interacción del usuario.
+    Funcion principal del modulo OptiTech. Permite ejecutar conjuntos de tareas predefinidas (perfiles)
+    o tareas individuales para la limpieza, optimizacion y mantenimiento de Windows 11.
+    Esta funcion esta disenada para la automatizacion y no requiere interaccion del usuario.
 
 .PARAMETER Profile
-    Especifica el nombre de un perfil de ejecución predefinido en el archivo de configuración.
-    Los perfiles agrupan múltiples tareas (ej. 'LimpiezaProfunda').
+    Especifica el nombre de un perfil de ejecucion predefinido en el archivo de configuracion.
+    Los perfiles agrupan multiples tareas (ej. 'LimpiezaProfunda').
 
 .PARAMETER Task
-    Especifica una o más tareas individuales a ejecutar. Permite una ejecución granular
-    de las funciones del módulo.
+    Especifica una o mas tareas individuales a ejecutar. Permite una ejecucion granular
+    de las funciones del modulo.
 
 .PARAMETER LogPath
-    Especifica una ruta de directorio para guardar el archivo de resumen de ejecución.
-    Si no se especifica, el resumen solo se mostrará en la consola.
+    Especifica una ruta de directorio para guardar el archivo de resumen de ejecucion.
+    Si no se especifica, el resumen solo se mostrara en la consola.
 
 .EXAMPLE
     PS C:\> Invoke-OptiTech -Profile LimpiezaProfunda -Verbose
-    Ejecuta todas las tareas asociadas al perfil 'LimpiezaProfunda' y muestra información detallada.
+    Ejecuta todas las tareas asociadas al perfil 'LimpiezaProfunda' y muestra informacion detallada.
 
 .EXAMPLE
     PS C:\> Invoke-OptiTech -Task Clear-SystemTempFiles, Clear-UserTempFiles
-    Ejecuta únicamente las tareas de limpieza de archivos temporales del sistema y del usuario.
+    Ejecuta unicamente las tareas de limpieza de archivos temporales del sistema y del usuario.
 
 .OUTPUTS
     [PSCustomObject] - Un objeto PSCustomObject con el resumen de todas las operaciones realizadas.
@@ -46,22 +46,22 @@ function Invoke-OptiTech {
     )
 
     begin {
-        # Inicializar la variable global para los logs de esta ejecución
+        # Inicializar la variable global para los logs de esta ejecucion
         $script:GlobalLogEntries = @()
 
-        # Asegurarse de que el sistema de logging esté listo.
+        # Asegurarse de que el sistema de logging este listo.
         # Initialize-Logging usa $PSScriptRoot del .psm1 para encontrar la carpeta de logs.
         Initialize-Logging
 
-        # Verificar y solicitar elevación de privilegios si es necesario.
-        # Nota: Invoke-AdminElevation cerrará el script si no es admin y no puede elevar.
+        # Verificar y solicitar elevaciÃ³n de privilegios si es necesario.
+        # Nota: Invoke-AdminElevation cerrarÃ¡ el script si no es admin y no puede elevar.
         Invoke-AdminElevation
 
-        Write-Verbose "Inicializando OptiTech. Configurando entorno de ejecución..."
+        Write-Verbose "Inicializando OptiTech. Configurando entorno de ejecucion..."
         $config = Get-OptiTechConfig
         if (-not $config) {
-            $script:GlobalLogEntries += (Write-Log -Level ERROR -Message "No se pudo cargar la configuración. Abortando ejecución.")
-            # Considerar un 'throw' o 'exit' aquí si la configuración es crítica.
+            $script:GlobalLogEntries += (Write-Log -Level ERROR -Message "No se pudo cargar la configuracion. Abortando ejecucion.")
+            # Considerar un 'throw' o 'exit' aquÃ­ si la configuraciÃ³n es crÃ­tica.
             # Por ahora, permitimos que el bloque 'process' maneje la ausencia de config.
         }
     }
@@ -76,7 +76,7 @@ function Invoke-OptiTech {
                     $tasksToExecute = $config.Profiles.$Profile
                     $script:GlobalLogEntries += (Write-Log -Level INFO -Message "Ejecutando perfil: '$Profile'")
                 } else {
-                    $script:GlobalLogEntries += (Write-Log -Level ERROR -Message "El perfil '$Profile' no se encontró en la configuración. No se ejecutarán tareas.")
+                    $script:GlobalLogEntries += (Write-Log -Level ERROR -Message "El perfil '$Profile' no se encontro en la configuracion. No se ejecutaran tareas.")
                     return
                 }
             } elseif ($PSCmdlet.ParameterSetName -eq 'Task') {
@@ -88,7 +88,7 @@ function Invoke-OptiTech {
                 Write-Verbose "Ejecutando tarea: $taskName"
                 if (Get-Command -Name $taskName -CommandType Function -ErrorAction SilentlyContinue) {
                     try {
-                        # Capturar la salida de la función (los objetos de log)
+                        # Capturar la salida de la funcion (los objetos de log)
                         $script:GlobalLogEntries += (& $taskName)
                         $script:GlobalLogEntries += (Write-Log -Level INFO -Message "Tarea '$taskName' completada.")
                     }
@@ -96,19 +96,20 @@ function Invoke-OptiTech {
                         $script:GlobalLogEntries += (Write-Log -Level ERROR -Message "Error al ejecutar la tarea '$taskName': $($_.Exception.Message)")
                     }
                 } else {
-                    $script:GlobalLogEntries += (Write-Log -Level WARNING -Message "La tarea '$taskName' no es una función válida en el módulo. Omitiendo.")
+                    $script:GlobalLogEntries += (Write-Log -Level WARNING -Message "La tarea '$taskName' no es una funcion valida en el modulo. Omitiendo.")
                 }
             }
         }
     }
 
     end {
-        Write-Verbose "Generando resumen de ejecución..."
+        Write-Verbose "Generando resumen de ejecucion..."
         $summaryOutput = Write-OptiTechSummary -LogEntries $script:GlobalLogEntries -OutputPath $LogPath
         
-        Write-Verbose "Ejecución de OptiTech finalizada."
-        # Limpiar la variable global para la próxima ejecución
+        Write-Verbose "Ejecucion de OptiTech finalizada."
+        # Limpiar la variable global para la proxima ejecucion
         $script:GlobalLogEntries = @()
         return $summaryOutput # Devolver el resumen como salida del cmdlet
     }
 }
+

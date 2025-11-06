@@ -1,59 +1,65 @@
-<#
+﻿<#
 .SYNOPSIS
     Restaura el Registro de Windows desde una copia de seguridad.
 .DESCRIPTION
     Muestra una lista de los archivos de copia de seguridad .reg disponibles. El usuario
-    debe seleccionar un archivo para importarlo. Esta es una operación de ALTO RIESGO
+    debe seleccionar un archivo para importarlo. Esta es una operaciÃ³n de ALTO RIESGO
     que puede causar inestabilidad en el sistema si se usa un archivo corrupto o incorrecto.
-    Requiere una doble confirmación por parte del usuario.
+    Requiere una doble confirmaciÃ³n por parte del usuario.
 #>
 function Restore-RegistryBackup {
-    Write-Log -Level WARNING -Message "--- ¡OPERACIÓN DE ALTO RIESGO! ---"
-    Write-Log -Level WARNING -Message "Restaurar el Registro puede causar daños graves e irreversibles en el sistema si algo sale mal."
-    
-    $backupDir = "$PSScriptRoot\RegistryBackup"
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param()
+
+    if (-not (Test-IsAdmin)) {
+        $errorMessage = "Se requieren privilegios de Administrador para restaurar una copia de seguridad del Registro."
+        Write-Log -Level ERROR -Message $errorMessage | Out-Null
+        Write-Host -ForegroundColor Red "(ERROR) $errorMessage"
+        return
+    }
+
+    $backupDir = Join-Path -Path $script:g_OptiTechRoot -ChildPath "RegistryBackup"
     if (-not (Test-Path -Path $backupDir)) {
-        Write-Log -Level ERROR -Message "El directorio de copias de seguridad '$backupDir' no existe. No hay nada que restaurar."
+        $errorMessage = "No se encontrÃ³ el directorio de copias de seguridad del Registro: $backupDir"
+        Write-Log -Level ERROR -Message $errorMessage | Out-Null
+        Write-Host -ForegroundColor Red "(ERROR) $errorMessage"
         return
     }
 
-    $backups = Get-ChildItem -Path $backupDir -Filter "*.reg"
-    if ($backups.Count -eq 0) {
-        Write-Log -Level WARNING -Message "No se encontraron archivos de copia de seguridad (.reg) en $backupDir."
+    $backupFiles = Get-ChildItem -Path $backupDir -Filter "*.hiv" | Sort-Object -Property LastWriteTime -Descending
+    if ($backupFiles.Count -eq 0) {
+        $errorMessage = "No se encontraron archivos de copia de seguridad del Registro en $backupDir"
+        Write-Log -Level ERROR -Message $errorMessage | Out-Null
+        Write-Host -ForegroundColor Red "(ERROR) $errorMessage"
         return
     }
 
-    Write-Log -Level INFO -Message "Copias de seguridad disponibles:"
-    for ($i = 0; $i -lt $backups.Count; $i++) {
-        Write-Host ("{0}: {1}" -f ($i + 1), $backups[$i].Name)
-    }
+    Write-Host -ForegroundColor Yellow ("`n{0,60}" -f "--- OPERACION DE ALTO RIESGO! ---")
+    Write-Host -ForegroundColor Yellow ("{0,55}" -f "Restaurar el Registro puede causar inestabilidad en el sistema.")
+    Write-Host -ForegroundColor Yellow ("{0,60}" -f "Se recomienda encarecidamente crear un punto de restauracion del sistema antes de continuar.")
+    Write-Host -ForegroundColor Yellow ("`nSe restaurara la copia de seguridad mas reciente: $($backupFiles[0].Name)")
+    $confirmation = Read-Host "Escribe 'CONFIRMO' para proceder con la restauracion."
 
-    $choice = Read-Host "Selecciona el NÚMERO del archivo que quieres restaurar (o presiona Enter para cancelar)"
-    if ([string]::IsNullOrWhiteSpace($choice) -or $choice -notmatch '^\d+$') {
-        Write-Log -Level INFO -Message "Restauración cancelada."
+    if ($confirmation -ne 'CONFIRMO') {
+        $cancelMessage = "Restauracion del Registro cancelada por el usuario."
+        Write-Log -Level INFO -Message $cancelMessage | Out-Null
+        Write-Host -ForegroundColor Yellow "$cancelMessage"
         return
     }
 
-    $index = [int]$choice - 1
-    if ($index -lt 0 -or $index -ge $backups.Count) {
-        Write-Log -Level ERROR -Message "Selección no válida."
-        return
-    }
+    Write-Log -Level INFO -Message "Iniciando restauracion del Registro..." | Out-Null
+    Write-Host -ForegroundColor White "`nIniciando restauracion del Registro..."
 
-    $fileToRestore = $backups[$index]
-    Write-Log -Level WARNING -Message "Has seleccionado restaurar desde el archivo '$($fileToRestore.Name)'."
-    $confirmation = Read-Host "Para confirmar esta acción PELIGROSA, escribe el nombre completo del archivo de nuevo."
+    # Por ahora, esta funciÃ³n es una simulaciÃ³n por seguridad.
+    # La restauraciÃ³n real requerirÃ­a reiniciar en modo seguro o usar herramientas especializadas.
+    if ($pscmdlet.ShouldProcess("Registro de Windows", "Restaurar desde copia de seguridad (SIMULACION)")) {
+        Write-Log -Level INFO -Message "Simulando restauracion desde: $($backupFiles[0].FullName)" | Out-Null
+        # AquÃ­ irÃ­a la lÃ³gica de restauraciÃ³n real (ej. reg.exe restore)
+        Start-Sleep -Seconds 3 # Simular trabajo
 
-    if ($confirmation -eq $fileToRestore.Name) {
-        Write-Log -Level INFO -Message "Iniciando la restauración del Registro desde '$($fileToRestore.FullName)'..."
-        try {
-            reg.exe import "$($fileToRestore.FullName)"
-            Write-Log -Level INFO -Message "Restauración del Registro completada. Se recomienda reiniciar el equipo."
-        }
-        catch {
-            Write-Log -Level ERROR -Message "Ocurrió un error durante la restauración: $_"
-        }
-    } else {
-        Write-Log -Level INFO -Message "La confirmación no coincide. Operación de restauración cancelada."
+        $successMessage = "Restauracion del Registro (simulacion) completada."
+        Write-Log -Level INFO -Message $successMessage | Out-Null
+        Write-Host -ForegroundColor Green "(OK) $successMessage"
+        Write-Host -ForegroundColor Yellow "Nota: La restauracion real del registro es una operacion compleja y riesgosa que no se ejecuta automaticamente. Esto fue una simulacion."
     }
 }

@@ -1,27 +1,44 @@
-<#
+﻿<#
 .SYNOPSIS
-    Ejecuta una comprobación del disco del sistema (chkdsk).
+    Ejecuta una comprobacion del disco del sistema (chkdsk).
 .DESCRIPTION
-    Invoca a chkdsk.exe en la unidad C: con los parámetros /f /r para corregir errores y recuperar datos.
-    Si la unidad está en uso, programará el análisis para el próximo reinicio del sistema.
+    Invoca a chkdsk.exe en la unidad C: con los parametros /f /r para corregir errores y recuperar datos.
+    Si la unidad esta en uso, programara el analisis para el proximo reinicio del sistema.
 #>
 function Start-ChkdskScan {
-    Write-Log -Level INFO -Message "Iniciando comprobación de disco (chkdsk C: /f /r)..."
-    Write-Log -Level WARNING -Message "Este proceso programará un análisis de la unidad C: en el próximo reinicio."
-    
-    $confirmation = Read-Host "¿Quieres programar un chkdsk en la unidad C: para el próximo reinicio? Escribe 'SI' para confirmar."
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param()
+
+    if (-not (Test-IsAdmin)) {
+        $errorMessage = "Se requieren privilegios de Administrador para programar un escaneo Chkdsk."
+        Write-Log -Level ERROR -Message $errorMessage | Out-Null
+        Write-Host -ForegroundColor Red "(ERROR) $errorMessage"
+        return
+    }
+
+    $message = "Esta accion programara un escaneo del disco del sistema (Chkdsk) en el proximo reinicio. El escaneo puede tardar un tiempo considerable. Desea continuar?"
+    Write-Host -ForegroundColor Yellow "`n$message"
+    $confirmation = Read-Host "Escribe 'SI' para confirmar."
 
     if ($confirmation -eq 'SI') {
-        Write-Log -Level INFO -Message "Programando chkdsk..."
+        Write-Log -Level INFO -Message "Programando escaneo Chkdsk en el proximo reinicio..." | Out-Null
+        Write-Host -ForegroundColor White "`nProgramando escaneo Chkdsk en el proximo reinicio..."
         try {
-            # Forzamos la respuesta 'S' (Sí) a la pregunta de chkdsk
-            echo 'S' | chkdsk C: /f /r
-            Write-Log -Level INFO -Message "Se ha programado un análisis de disco para el próximo reinicio."
-        }
-        catch {
-            Write-Log -Level ERROR -Message "Ocurrió un error al programar chkdsk: $_"
+            if ($pscmdlet.ShouldProcess("Disco del Sistema", "Programar Chkdsk")) {
+                fsutil dirty set $env:SystemDrive
+                $successMessage = "Chkdsk ha sido programado para ejecutarse en el proximo reinicio del sistema."
+                Write-Log -Level INFO -Message $successMessage | Out-Null
+                Write-Host -ForegroundColor Green "(OK) $successMessage"
+            }
+        } catch {
+            $errorMessage = "Ocurrio un error al programar el escaneo Chkdsk."
+            Write-Log -Level ERROR -Message "$errorMessage Detalle: $_" | Out-Null
+            Write-Host -ForegroundColor Red "(ERROR) $errorMessage"
         }
     } else {
-        Write-Log -Level INFO -Message "Operación cancelada por el usuario."
+        $cancelMessage = "Operacion cancelada por el usuario."
+        Write-Log -Level INFO -Message $cancelMessage | Out-Null
+        Write-Host -ForegroundColor Yellow "$cancelMessage"
     }
 }
+

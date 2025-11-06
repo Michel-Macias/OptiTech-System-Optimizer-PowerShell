@@ -1,18 +1,47 @@
-<#
+﻿<#
 .SYNOPSIS
-    Establece el plan de energía de Windows en 'Alto rendimiento'.
+    Establece el plan de energia de Windows en 'Alto rendimiento'.
 .DESCRIPTION
-    Busca el GUID del plan de energía 'Alto rendimiento' usando powercfg.exe
+    Busca el GUID del plan de energia 'Alto rendimiento' usando powercfg.exe
     y lo establece como el plan activo.
 #>
 function Set-HighPerformancePowerPlan {
-    Write-Log -Level INFO -Message "Aplicando plan de energía de alto rendimiento..."
-    # Busca la línea que contiene "Alto rendimiento" y extrae el GUID.
-    $highPerformance = powercfg /list | Where-Object { $_ -match "Alto rendimiento" } | ForEach-Object { ($_.Split(" "))[3] }
-    if ($highPerformance) {
-        powercfg /setactive $highPerformance
-        Write-Log -Level INFO -Message "Plan de energía de alto rendimiento activado."
-    } else {
-        Write-Log -Level WARNING -Message "No se encontró el plan de energía de alto rendimiento."
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param()
+
+    if (-not (Test-IsAdmin)) {
+        $errorMessage = "Se requieren privilegios de Administrador para cambiar el plan de energia."
+        Write-Log -Level ERROR -Message $errorMessage | Out-Null
+        Write-Host -ForegroundColor Red "(ERROR) $errorMessage"
+        return
+    }
+
+    Write-Log -Level INFO -Message "Activando el plan de energia de Alto Rendimiento..." | Out-Null
+    Write-Host -ForegroundColor White "`nActivando el plan de energia de Alto Rendimiento..."
+
+    try {
+        # GUID del plan de energÃ­a de Alto Rendimiento
+        $highPerformanceGuid = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"
+        $currentPlan = powercfg /getactivescheme
+
+        if ($currentPlan -match $highPerformanceGuid) {
+            $message = "El plan de energia de Alto Rendimiento ya esta activo."
+            Write-Log -Level INFO -Message $message | Out-Null
+            Write-Host -ForegroundColor Green "(OK) $message"
+            return
+        }
+
+        if ($pscmdlet.ShouldProcess("Sistema", "Activar plan de energia de Alto Rendimiento")) {
+            powercfg /setactive $highPerformanceGuid
+            $message = "Plan de energia de Alto Rendimiento activado."
+            Write-Log -Level INFO -Message $message | Out-Null
+            Write-Host -ForegroundColor Green "(OK) $message"
+        }
+    } catch {
+        $errorMessage = "Ocurrio un error al intentar activar el plan de energia de Alto Rendimiento."
+        Write-Log -Level ERROR -Message "$errorMessage Detalle: $_" | Out-Null
+        Write-Host -ForegroundColor Red "(ERROR) $errorMessage"
+        Write-Host -ForegroundColor Red "Asegurate de estar ejecutando el script como Administrador."
     }
 }
+
