@@ -59,7 +59,25 @@ Este proyecto ofrece dos enfoques principales para la optimización del sistema,
     Import-Module -Name .\OptiTech\OptiTech.psd1
     ```
 
-## ⚙️ Uso y Visibilidad
+## 🚀 Uso Interactivo (Recomendado para técnicos)
+
+Para una experiencia guiada, puedes utilizar el script interactivo `Start-OptiTech.ps1` que actúa como una interfaz amigable para el módulo.
+
+1.  **Inicia el script** desde la raíz del proyecto en una terminal de PowerShell con privilegios de Administrador:
+    ```powershell
+    ./Start-OptiTech.ps1
+    ```
+2.  **Navega por los menús:** El script te presentará un menú principal para acceder a diferentes categorías de tareas:
+    *   Análisis del Sistema
+    *   Limpieza del Sistema
+    *   Optimización del Sistema
+    *   Mantenimiento y Copias de Seguridad
+    *   Red y Conectividad
+3.  **Ejecuta Perfiles Automatizados:** La opción `A` te permite ejecutar perfiles predefinidos en `config.json`. Para cada perfil, podrás **elegir el modo de ejecución**:
+    *   **Simulación (WhatIf):** Muestra todos los cambios que se realizarían sin aplicar ninguno. Ideal para verificar las acciones de un perfil antes de ejecutarlo.
+    *   **Aplicar Cambios:** Ejecuta las tareas de forma real. Por seguridad, te pedirá una confirmación final antes de proceder.
+
+## ⚙️ Uso Avanzado (Línea de Comandos)
 
 La función principal del módulo es `Invoke-OptiTech`. Aunque no hay un menú interactivo, el control y la visibilidad sobre las acciones realizadas son totales:
 

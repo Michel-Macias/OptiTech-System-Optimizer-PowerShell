@@ -247,7 +247,7 @@ while ($true) {
     Write-Host -NoNewline "4. " -ForegroundColor Yellow; Write-Host "Mantenimiento y Copias de Seguridad"
     Write-Host -NoNewline "5. " -ForegroundColor Yellow; Write-Host "Red y Conectividad"
     Write-Host
-    Write-Host -NoNewline "A. " -ForegroundColor Yellow; Write-Host "Ejecutar Perfil Automatizado (Modo Simulación)"
+    Write-Host -NoNewline "A. " -ForegroundColor Yellow; Write-Host "Ejecutar Perfil Automatizado"
     Write-Host
     Write-Host -NoNewline "S. " -ForegroundColor Yellow; Write-Host "Salir"
     Write-Host
