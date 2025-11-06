@@ -1,42 +1,54 @@
-<#
+﻿<#
 .SYNOPSIS
     Elimina los archivos de las carpetas temporales del sistema.
 .DESCRIPTION
     Limpia el contenido de %SystemRoot%\Temp y %TEMP%.
-    Usa -ErrorAction SilentlyContinue para evitar errores si los archivos están en uso.
+    Usa -ErrorAction SilentlyContinue para evitar errores si los archivos estÃ¡n en uso.
 #>
 function Clear-SystemTempFiles {
-    Write-Log -Level INFO -Message "Iniciando limpieza de archivos temporales del sistema." | Out-Null
-    $tempPath = "$env:SystemRoot\Temp"
-    
-    if (-not (Test-Path -Path $tempPath)) {
-        Write-Log -Level WARNING -Message "El directorio de sistema temporal '$tempPath' no existe." | Out-Null
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param()
+
+    if (-not (Test-IsAdmin)) {
+        $errorMessage = "Se requieren privilegios de Administrador para limpiar los archivos temporales del sistema."
+        Write-Log -Level ERROR -Message $errorMessage | Out-Null
+        Write-Host -ForegroundColor Red "(ERROR) $errorMessage"
         return
     }
 
-    $itemsToDelete = Get-ChildItem -Path $tempPath -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.CreationTime -lt (Get-Date).AddDays(-7) }
-    $filesToDelete = $itemsToDelete | Where-Object { -not $_.PSIsContainer }
-    $totalSize = 0
-    if ($filesToDelete) {
-        $totalSize = ($filesToDelete | Measure-Object -Property Length -Sum).Sum
+    $tempPath = "$env:SystemRoot\Temp"
+    Write-Log -Level INFO -Message "Iniciando limpieza de archivos temporales del sistema en $tempPath..." | Out-Null
+    Write-Host -ForegroundColor White "`nLimpiando archivos temporales del sistema en $tempPath..."
+
+    if (-not (Test-Path -Path $tempPath)) {
+        $message = "El directorio de archivos temporales del sistema no existe: $tempPath"
+        Write-Log -Level INFO -Message $message | Out-Null
+        Write-Host -ForegroundColor Green "(OK) $message"
+        return
     }
 
-    $itemCount = $itemsToDelete.Count
-    for ($i = 0; $i -lt $itemCount; $i++) {
-        $item = $itemsToDelete[$i]
-        try {
-            $percentComplete = ($i / $itemCount) * 100
-            Write-Progress -Activity "Limpiando archivos temporales del sistema" -Status "Eliminando $($item.Name)" -PercentComplete $percentComplete
-            $item | Remove-Item -Recurse -Force -ErrorAction Stop # Forzar error para que lo capture el catch
-        } catch {
-            # Ignorar el error si el archivo no se encuentra (ya fue eliminado) o está en uso.
-            Write-Log -Level INFO -Message "No se pudo eliminar $($item.FullName) (probablemente en uso o ya no existe)." | Out-Null
+    $items = Get-ChildItem -Path $tempPath -Recurse -Force -ErrorAction SilentlyContinue
+    if ($items.Count -eq 0) {
+        $message = "No se encontraron archivos temporales del sistema para eliminar."
+        Write-Log -Level INFO -Message $message | Out-Null
+        Write-Host -ForegroundColor Green "(OK) $message"
+        return
+    }
+
+    if ($pscmdlet.ShouldProcess($tempPath, "Limpiar archivos temporales")) {
+        $items | ForEach-Object {
+            try {
+                Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction Stop
+            } catch {
+                $errorMessage = "No se pudo eliminar $($_.FullName). Puede que estÃ© en uso."
+                Write-Log -Level WARNING -Message "$errorMessage Detalle: $_" | Out-Null
+                Write-Host -ForegroundColor Yellow "- $errorMessage"
+            }
         }
     }
-    Write-Progress -Activity "Limpiando archivos temporales del sistema" -Completed
 
-    $sizeFreedGB = [math]::Round($totalSize / 1GB, 2)
-    $message = "Limpieza de archivos temporales del sistema completada. Se liberaron aproximadamente $($sizeFreedGB) GB."
+    $message = "Limpieza de archivos temporales del sistema completada."
     Write-Log -Level INFO -Message $message | Out-Null
-    Write-Host -ForegroundColor Green "✔ $message"
+    Write-Host -ForegroundColor Green "(OK) $message"
 }
+

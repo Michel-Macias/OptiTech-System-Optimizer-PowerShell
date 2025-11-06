@@ -20,6 +20,8 @@ try {
 catch {
     Write-Host -ForegroundColor Red "Error Crítico: No se pudo importar el módulo OptiTech."
     Write-Host -ForegroundColor Red "Asegúrese de que el directorio 'OptiTech' se encuentra en la misma carpeta que este script."
+    Write-Host -ForegroundColor Red "Detalles del error: $($_.Exception.Message)"
+    Write-Host -ForegroundColor Red "StackTrace: $($_.ScriptStackTrace)"
     Read-Host "Presione Enter para salir."
     exit
 }
@@ -90,16 +92,18 @@ function Show-OptimizationMenu {
         Write-Host "--- Módulo de Optimización ---" -ForegroundColor Cyan
 
         Write-Host -NoNewline "1. " -ForegroundColor Yellow; Write-Host "Ajustar efectos visuales para mejor rendimiento"
-        Write-Host -NoNewline "2. " -ForegroundColor Yellow; Write-Host "Gestionar servicios no esenciales"
-        Write-Host -NoNewline "3. " -ForegroundColor Yellow; Write-Host "Aplicar plan de energía de alto rendimiento"
+        Write-Host -NoNewline "2. " -ForegroundColor Yellow; Write-Host "Deshabilitar servicios no esenciales"
+        Write-Host -NoNewline "3. " -ForegroundColor Yellow; Write-Host "Restaurar servicios no esenciales"
+        Write-Host -NoNewline "4. " -ForegroundColor Yellow; Write-Host "Aplicar plan de energía de alto rendimiento"
         Write-Host -NoNewline "V. " -ForegroundColor Yellow; Write-Host "Volver al menú principal"
 
         $choice = Read-Host "Seleccione una opción"
 
         switch ($choice) {
             '1' { Invoke-OptiTechTask -TaskName Set-PerformanceVisualEffects }
-            '2' { Invoke-OptiTechTask -TaskName Manage-NonEssentialServices }
-            '3' { Invoke-OptiTechTask -TaskName Set-HighPerformancePowerPlan }
+            '2' { Invoke-OptiTechTask -TaskName Manage-NonEssentialServices -Action "Disable" }
+            '3' { Invoke-OptiTechTask -TaskName Manage-NonEssentialServices -Action "Restore" }
+            '4' { Invoke-OptiTechTask -TaskName Set-HighPerformancePowerPlan }
             'V' { return }
             default { Write-Warning "Opción no válida." }
         }

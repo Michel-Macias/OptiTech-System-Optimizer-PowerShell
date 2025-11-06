@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Escribe un mensaje en el archivo de log y en la consola, y devuelve un objeto de log.
 .PARAMETER Message
@@ -21,7 +21,7 @@ function Write-Log {
     $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
     $logEntry = "[$timestamp] [$Level] - $Message"
     
-    # Añade la entrada al archivo de log.
+    # Anade la entrada al archivo de log.
     Add-Content -Path $script:LogFilePath -Value $logEntry
 
     # Devuelve un objeto de log para el motor de informes.
@@ -31,3 +31,4 @@ function Write-Log {
         Message   = $Message
     }
 }
+

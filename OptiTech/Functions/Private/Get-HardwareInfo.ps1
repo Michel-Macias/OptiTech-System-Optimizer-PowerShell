@@ -1,12 +1,12 @@
-<#
+﻿<#
 .SYNOPSIS
-    Obtiene y muestra información del hardware principal (CPU, RAM, Discos).
+    Obtiene y muestra informaciÃ³n del hardware principal (CPU, RAM, Discos).
 .DESCRIPTION
-    Usa Get-CimInstance para consultar información de WMI sobre el procesador,
-    la memoria física y los discos lógicos.
+    Usa Get-CimInstance para consultar informaciÃ³n de WMI sobre el procesador,
+    la memoria fÃ­sica y los discos lÃ³gicos.
 #>
 function Get-HardwareInfo {
-    Write-Log -Level INFO -Message "Obteniendo información del hardware." | Out-Null
+    Write-Log -Level INFO -Message "Obteniendo informaciÃ³n del hardware." | Out-Null
     
     Write-Host "`n--- CPU ---" -ForegroundColor Cyan
     Get-CimInstance -ClassName Win32_Processor | Select-Object Name, Manufacturer, MaxClockSpeed, NumberOfCores, NumberOfLogicalProcessors | ForEach-Object {
@@ -32,7 +32,7 @@ function Get-HardwareInfo {
     Write-Host -NoNewline -Object ("- {0,-25}: " -f "Memoria Libre (MB)") -ForegroundColor Green
     Write-Host -Object $freeMemory -ForegroundColor White
 
-    Write-Host "`n--- Discos Lógicos ---" -ForegroundColor Cyan
+    Write-Host "`n--- Discos LÃ³gicos ---" -ForegroundColor Cyan
     Get-CimInstance -ClassName Win32_LogicalDisk | ForEach-Object {
         Write-Host -NoNewline -Object ("- {0,-25}: " -f "DeviceID") -ForegroundColor Green; Write-Host $_.DeviceID -ForegroundColor White
         Write-Host -NoNewline -Object ("- {0,-25}: " -f "VolumeName") -ForegroundColor Green; Write-Host $_.VolumeName -ForegroundColor White
@@ -42,3 +42,4 @@ function Get-HardwareInfo {
         Write-Host ""
     }
 }
+

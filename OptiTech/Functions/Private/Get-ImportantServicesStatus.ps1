@@ -1,13 +1,13 @@
-<#
+﻿<#
 .SYNOPSIS
     Muestra el estado de una lista predefinida de servicios de Windows.
 .DESCRIPTION
-    Define una lista de servicios importantes o comúnmente problemáticos
+    Define una lista de servicios importantes o comÃºnmente problemÃ¡ticos
     y muestra su estado actual (Running, Stopped, etc.).
 #>
 function Get-ImportantServicesStatus {
     Write-Log -Level INFO -Message "Obteniendo estado de servicios importantes." | Out-Null
-    # Lista de servicios a consultar. Se puede modificar según las necesidades.
+    # Lista de servicios a consultar. Se puede modificar segÃºn las necesidades.
     $services = @("Spooler", "wuauserv", "BITS", "SysMain")
     $serviceStatus = Get-Service -Name $services -ErrorAction SilentlyContinue
 
@@ -23,3 +23,4 @@ function Get-ImportantServicesStatus {
         }
     }
 }
+
