@@ -38,6 +38,7 @@ Este proyecto ofrece dos enfoques principales para la optimización del sistema,
 *   **Optimización de Rendimiento:** Ajusta la configuración de efectos visuales, gestiona servicios no esenciales y aplica planes de energía de alto rendimiento.
 *   **Mantenimiento y Seguridad:** Permite la creación de puntos de restauración, ejecución de `sfc` y `DISM`, y la gestión de copias de seguridad del Registro de Windows.
 *   **Red y Conectividad:** Incluye utilidades para limpiar la caché de DNS y renovar la configuración IP.
+*   **Manejo de Errores y Elevación de Privilegios:** Implementación robusta de manejo de errores y verificación/elevación automática de privilegios de administrador para asegurar la ejecución correcta de las tareas.
 
 ## 🚀 Empezando
 
