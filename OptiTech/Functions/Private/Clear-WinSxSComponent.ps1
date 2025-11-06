@@ -17,7 +17,7 @@ function Clear-WinSxSComponent {
 
     if (-not (Test-IsAdmin)) {
         $errorMessage = "Se requieren privilegios de Administrador para realizar una limpieza del almacen de componentes (WinSxS)."
-        Write-Log -Level ERROR -Message $errorMessage | Out-Null
+        Write-Log -Level ERROR -Message $errorMessage
         Write-Host -ForegroundColor Red "(ERROR) $errorMessage"
         return
     }
@@ -28,31 +28,30 @@ function Clear-WinSxSComponent {
 
     if ($confirmation -ne 'SI') {
         $cancelMessage = "Operacion cancelada por el usuario."
-        Write-Log -Level INFO -Message $cancelMessage | Out-Null
+        Write-Log -Level INFO -Message $cancelMessage
         Write-Host -ForegroundColor Yellow "$cancelMessage"
         return
     }
 
-    Write-Log -Level INFO -Message "Iniciando limpieza del almacen de componentes (WinSxS)..." | Out-Null
+    Write-Log -Level INFO -Message "Iniciando limpieza del almacen de componentes (WinSxS)..."
     Write-Host -ForegroundColor White "`nIniciando analisis y limpieza del almacen de componentes (WinSxS)..."
 
     try {
         Write-Host -ForegroundColor White "- Analizando el almacen de componentes... (Esto puede tardar)"
         Dism.exe /Online /Cleanup-Image /AnalyzeComponentStore | Out-Null
-        Write-Log -Level INFO -Message "Analisis de WinSxS completado." | Out-Null
+        Write-Log -Level INFO -Message "Analisis de WinSxS completado."
 
         if ($pscmdlet.ShouldProcess("Almacen de Componentes", "Limpiar con reseteo de base")) {
             Write-Host -ForegroundColor White "- Iniciando la limpieza... (Esto puede tardar mucho tiempo)"
             Dism.exe /Online /Cleanup-Image /StartComponentCleanup /ResetBase | Out-Null
             $successMessage = "Limpieza del almacen de componentes (WinSxS) completada con exito."
-            Write-Log -Level INFO -Message $successMessage | Out-Null
+            Write-Log -Level INFO -Message $successMessage
             Write-Host -ForegroundColor Green "(OK) $successMessage"
         }
     } catch {
         $errorMessage = "Ocurrio un error durante la limpieza de WinSxS."
-        Write-Log -Level ERROR -Message "$errorMessage Detalle: $_" | Out-Null
+        Write-Log -Level ERROR -Message "$errorMessage Detalle: $_"
         Write-Host -ForegroundColor Red "(ERROR) $errorMessage"
         Write-Host -ForegroundColor Red "Asegurate de estar ejecutando el script como Administrador."
     }
 }
-

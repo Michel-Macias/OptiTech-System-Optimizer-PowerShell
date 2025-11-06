@@ -11,12 +11,12 @@ function Set-HighPerformancePowerPlan {
 
     if (-not (Test-IsAdmin)) {
         $errorMessage = "Se requieren privilegios de Administrador para cambiar el plan de energia."
-        Write-Log -Level ERROR -Message $errorMessage | Out-Null
+        Write-Log -Level ERROR -Message $errorMessage
         Write-Host -ForegroundColor Red "(ERROR) $errorMessage"
         return
     }
 
-    Write-Log -Level INFO -Message "Activando el plan de energia de Alto Rendimiento..." | Out-Null
+    Write-Log -Level INFO -Message "Activando el plan de energia de Alto Rendimiento..."
     Write-Host -ForegroundColor White "`nActivando el plan de energia de Alto Rendimiento..."
 
     try {
@@ -26,7 +26,7 @@ function Set-HighPerformancePowerPlan {
 
         if ($currentPlan -match $highPerformanceGuid) {
             $message = "El plan de energia de Alto Rendimiento ya esta activo."
-            Write-Log -Level INFO -Message $message | Out-Null
+            Write-Log -Level INFO -Message $message
             Write-Host -ForegroundColor Green "(OK) $message"
             return
         }
@@ -34,12 +34,12 @@ function Set-HighPerformancePowerPlan {
         if ($pscmdlet.ShouldProcess("Sistema", "Activar plan de energia de Alto Rendimiento")) {
             powercfg /setactive $highPerformanceGuid
             $message = "Plan de energia de Alto Rendimiento activado."
-            Write-Log -Level INFO -Message $message | Out-Null
+            Write-Log -Level INFO -Message $message
             Write-Host -ForegroundColor Green "(OK) $message"
         }
     } catch {
         $errorMessage = "Ocurrio un error al intentar activar el plan de energia de Alto Rendimiento."
-        Write-Log -Level ERROR -Message "$errorMessage Detalle: $_" | Out-Null
+        Write-Log -Level ERROR -Message "$errorMessage Detalle: $_"
         Write-Host -ForegroundColor Red "(ERROR) $errorMessage"
         Write-Host -ForegroundColor Red "Asegurate de estar ejecutando el script como Administrador."
     }

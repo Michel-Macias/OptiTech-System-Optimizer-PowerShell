@@ -11,12 +11,12 @@ function Clear-UpdateCache {
 
     if (-not (Test-IsAdmin)) {
         $errorMessage = "Se requieren privilegios de Administrador para limpiar la cache de Windows Update."
-        Write-Log -Level ERROR -Message $errorMessage | Out-Null
+        Write-Log -Level ERROR -Message $errorMessage
         Write-Host -ForegroundColor Red "(ERROR) $errorMessage"
         return
     }
 
-    Write-Log -Level INFO -Message "Iniciando limpieza de la cache de Windows Update..." | Out-Null
+    Write-Log -Level INFO -Message "Iniciando limpieza de la cache de Windows Update..."
     Write-Host -ForegroundColor White "`nIniciando limpieza de la cache de Windows Update..."
 
     $serviceName = "wuauserv"
@@ -25,7 +25,7 @@ function Clear-UpdateCache {
     try {
         Write-Host -ForegroundColor White "- Deteniendo el servicio de Windows Update ($serviceName)..."
         Stop-Service -Name $serviceName -Force -ErrorAction Stop
-        Write-Log -Level INFO -Message "Servicio $serviceName detenido." | Out-Null
+        Write-Log -Level INFO -Message "Servicio $serviceName detenido."
 
         if ($pscmdlet.ShouldProcess($updateCachePath, "Limpiar cache de Windows Update")) {
             Write-Host -ForegroundColor White "- Limpiando la cache en $updateCachePath..."
@@ -33,28 +33,27 @@ function Clear-UpdateCache {
             if ($items) {
                 Remove-Item -Path $items.FullName -Force -Recurse -ErrorAction Stop
                 $message = "Cache de Windows Update limpiada."
-                Write-Log -Level INFO -Message $message | Out-Null
+                Write-Log -Level INFO -Message $message
                 Write-Host -ForegroundColor Green "  (OK) $message"
             } else {
                 $message = "La cache de Windows Update ya estaba vacia."
-                Write-Log -Level INFO -Message $message | Out-Null
+                Write-Log -Level INFO -Message $message
                 Write-Host -ForegroundColor Green "  (OK) $message"
             }
         }
 
     } catch {
         $errorMessage = "Ocurrio un error durante la limpieza de la cache de Windows Update."
-        Write-Log -Level ERROR -Message "$errorMessage Detalle: $_" | Out-Null
+        Write-Log -Level ERROR -Message "$errorMessage Detalle: $_"
         Write-Host -ForegroundColor Red "(ERROR) $errorMessage"
 
     } finally {
         Write-Host -ForegroundColor White "- Reiniciando el servicio de Windows Update ($serviceName)..."
         Start-Service -Name $serviceName -ErrorAction SilentlyContinue
-        Write-Log -Level INFO -Message "Servicio $serviceName iniciado." | Out-Null
+        Write-Log -Level INFO -Message "Servicio $serviceName iniciado."
     }
 
     $finalMessage = "Proceso de limpieza de cache de Windows Update completado."
-    Write-Log -Level INFO -Message $finalMessage | Out-Null
+    Write-Log -Level INFO -Message $finalMessage
     Write-Host -ForegroundColor Green "`n(OK) $finalMessage"
 }
-

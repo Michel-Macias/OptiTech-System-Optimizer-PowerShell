@@ -179,8 +179,6 @@ function Show-ProfilesMenu {
     while ($true) {
         Clear-Host
         Write-Host "--- Seleccionar Perfil Automatizado ---" -ForegroundColor Cyan
-        Write-Host "Los perfiles se ejecutarán en modo 'WhatIf' (simulación). No se realizarán cambios." -ForegroundColor Magenta
-        Write-Host "Para ejecutar los cambios, edite este script y elimine el parámetro '-WhatIf'." -ForegroundColor Magenta
         for ($i = 0; $i -lt $profileNames.Count; $i++) {
             Write-Host -NoNewline ("{0}. " -f ($i + 1)) -ForegroundColor Yellow; Write-Host $profileNames[$i]
         }
@@ -193,10 +191,38 @@ function Show-ProfilesMenu {
         if ($choice -match '^\d+$' -and ([int]$choice -gt 0) -and ([int]$choice -le $profileNames.Count)) {
             $selectedProfileName = $profileNames[[int]$choice - 1]
             
-            Invoke-OptiTech -Profile $selectedProfileName -WhatIf
+            # Menú para seleccionar el modo de ejecución
+            Clear-Host
+            Write-Host "--- Perfil: $selectedProfileName ---" -ForegroundColor Cyan
+            Write-Host "Seleccione el modo de ejecución:"
+            Write-Host -NoNewline "1. " -ForegroundColor Yellow; Write-Host "Simulación (WhatIf) - Muestra los cambios que se harían sin aplicarlos."
+            Write-Host -NoNewline "2. " -ForegroundColor Yellow; Write-Host "Aplicar Cambios - Ejecuta las tareas y modifica el sistema."
+            Write-Host -NoNewline "V. " -ForegroundColor Yellow; Write-Host "Cancelar y volver"
+
+            $modeChoice = Read-Host "Seleccione un modo"
+
+            switch ($modeChoice) {
+                '1' {
+                    Write-Host "Ejecutando perfil '$selectedProfileName' en modo SIMULACIÓN..." -ForegroundColor Green
+                    Invoke-OptiTech -Profile $selectedProfileName -WhatIf | Out-Null
+                }
+                '2' {
+                    $confirm = Read-Host "¡ATENCIÓN! Está a punto de aplicar cambios reales en el sistema. ¿Está seguro? (S/N)"
+                    if ($confirm -eq 'S') {
+                        Write-Host "Ejecutando perfil '$selectedProfileName' en modo REAL..." -ForegroundColor Green
+                        Invoke-OptiTech -Profile $selectedProfileName | Out-Null
+                    } else {
+                        Write-Warning "Operación cancelada por el usuario."
+                    }
+                }
+                'V' { 
+                    continue # Vuelve al menú de selección de perfil
+                } 
+                default { Write-Warning "Opción no válida." }
+            }
 
             Read-Host "Presione Enter para continuar..."
-            return
+            return # Vuelve al menú principal después de la ejecución
         } else {
             Write-Warning "Opción no válida. Por favor, intente de nuevo."
             Read-Host "Presione Enter para continuar..."

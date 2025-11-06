@@ -9,6 +9,7 @@
     [PSCustomObject] - Un objeto que representa la entrada de log.
 #>
 function Write-Log {
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)]
         [string]$Message,
@@ -17,6 +18,9 @@ function Write-Log {
         [ValidateSet("INFO", "WARNING", "ERROR")]
         [string]$Level
     )
+
+    # Forzar la escritura del log incluso en modo -WhatIf
+    $WhatIfPreference = $false
 
     $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
     $logEntry = "[$timestamp] [$Level] - $Message"
