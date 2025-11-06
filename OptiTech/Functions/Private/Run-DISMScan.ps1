@@ -28,15 +28,15 @@ function Run-DISMScan {
 
             Write-Host -ForegroundColor White "- Ejecutando DISM /Online /Cleanup-Image /RestoreHealth..."
             Dism.exe /Online /Cleanup-Image /RestoreHealth | Out-Null
-            $message = "Escaneo y reparaciÃ³n con DISM completados."
+            $message = "Escaneo y reparación con DISM completados."
             Write-Log -Level INFO -Message $message | Out-Null
             Write-Host -ForegroundColor Green "(OK) $message"
         }
     } catch {
-        $errorMessage = "OcurriÃ³ un error durante el escaneo DISM."
+        $errorMessage = "Ocurrió un error durante el escaneo DISM."
         Write-Log -Level ERROR -Message "$errorMessage Detalle: $_" | Out-Null
         Write-Host -ForegroundColor Red "(ERROR) $errorMessage"
-        Write-Host -ForegroundColor Red "AsegÃºrate de estar ejecutando el script como Administrador."
+        Write-Host -ForegroundColor Red "Asegúrate de estar ejecutando el script como Administrador."
     }
 }
 
